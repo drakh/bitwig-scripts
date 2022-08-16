@@ -2,7 +2,7 @@ loadAPI(17);
 
 host.setShouldFailOnDeprecatedUse(true);
 
-host.defineController("Drakh", "AKAI MIDI Mix", "0.1", "f8f322d3-d287-49f4-a0e7-0d224eec26d2", "drakh");
+host.defineController("Drakh", "AKAI MIDI Mix", "1.0", "f8f322d3-d287-49f4-a0e7-0d224eec26d2", "drakh");
 
 const deviceNames = ['MIDI Mix'];
 
@@ -23,17 +23,14 @@ interface MidiEvent {
 }
 
 class MIDIMix {
-    private deviceIdx: number;
-    private midiIn: API.MidiIn;
-    private midiOut: API.MidiOut;
-    private bank: API.TrackBank;
-    private surface: API.HardwareSurface;
+    private readonly deviceIdx: number;
+    private readonly midiIn: API.MidiIn;
+    private readonly midiOut: API.MidiOut;
+    private readonly bank: API.TrackBank;
+    private readonly surface: API.HardwareSurface;
     private sendMidi: MidiEvent[] = [];
 
-    // private input: API.NoteInput;
-
     constructor(deviceIdx: number) {
-        this.deviceIdx = deviceIdx;
         const midiIn = host.getMidiInPort(deviceIdx);
         const midiOut = host.getMidiOutPort(deviceIdx);
 
@@ -41,29 +38,26 @@ class MIDIMix {
 
         const bank = host.createTrackBank(gridSize, sends, 1);
         bank.setShouldShowClipLauncherFeedback(true);
-        this.bank = bank;
 
+        this.deviceIdx = deviceIdx;
         this.midiIn = midiIn;
         this.midiOut = midiOut;
+        this.bank = bank;
         this.surface = surface;
 
         this.register();
     }
 
     public flush() {
-        println('flush start');
         const {sendMidi, midiOut} = this;
         sendMidi.forEach(({status, data1, data2}) => {
-            println(`Send MIDI: ${JSON.stringify({status, data1, data2})}`)
             midiOut.sendMidi(status, data1, data2)
         })
         this.sendMidi = [];
-        println('flush end');
-
     }
 
     private register() {
-        const {midiOut, midiIn, bank, surface} = this;
+        const {midiIn, bank, surface} = this;
 
         for (let c = 0; c < gridSize; c++) {
             try {
@@ -161,39 +155,14 @@ class MIDIMix {
             });
         });
     }
-
-    // private onMidi(status, data1, data2) {
-    //     const {bank} = this;
-    //     println(JSON.stringify({status, data1, data2}));
-    //     switch (status) {
-    //         case 144:
-    //             switch (data1) {
-    //                 case 25:
-    //
-    //                     break;
-    //                 case 26:
-    //                     bank.scrollPageForwards();
-    //                     break;
-    //                 case 27:
-    //                 case 60:
-    //                     break;
-    //                 default:
-    //                     break;
-    //             }
-    //             break;
-    //     }
-    // }
 }
 
 const controllers: MIDIMix[] = [];
 
-async function init() {
-    // const app = host.createApplication();
+function init() {
     for (let i = 0; i < midiPorts; i++) {
         controllers.push(new MIDIMix(i));
-
     }
-    println("test initialized!");
 
 }
 
@@ -201,12 +170,8 @@ function flush() {
     controllers.forEach((c) => {
         c.flush();
     });
-    println("flushed");
 }
 
 function exit() {
-    // controllers.forEach((c) => {
-    //     c.unregister();
-    // })
     println("exited");
 }
