@@ -1,0 +1,14 @@
+{
+  "name": "bitwigscript",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "postinstall": "lerna bootstrap",
+    "dev": "lerna run tsc --parallel"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "lerna": "5.4.2"
+  }
+}
