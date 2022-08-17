@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "tsc": "tsc --watch --project tsconfig.json"
+    "dev": "tsc --watch --project tsconfig.json",
+    "build": "tsc --project tsconfig.json"
   },
   "author": "",
   "license": "ISC",

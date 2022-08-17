@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "postinstall": "lerna bootstrap",
-    "dev": "lerna run tsc --parallel"
+    "dev": "lerna run dev --parallel",
+    "build": "lerna run build --parallel"
   },
   "author": "",
   "license": "ISC",

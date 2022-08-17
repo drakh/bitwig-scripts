@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "es5",
     "module": "es2015",
-    "rootDir": "./src",
-    "baseUrl": "./src",
+    "rootDir": "src",
+    "baseUrl": "src",
     "sourceMap": false,
-    "outDir": "./dist",
+    "outDir": "dist",
     "moduleResolution": "node",
     "allowJs": false,
     "checkJs": false,
