@@ -1,7 +1,13 @@
 loadAPI(17);
 host.setShouldFailOnDeprecatedUse(true);
 
-host.defineController("Drakh", "AKAI APC mini two", "0.1", "605f2c30-c299-4bb6-a591-5a0b9f0a1c20", "drakh");
+host.defineController(
+    'Drakh',
+    'AKAI APC mini two',
+    '0.1',
+    '605f2c30-c299-4bb6-a591-5a0b9f0a1c20',
+    'drakh'
+);
 
 const deviceNames = [
     'APC MINI',
@@ -13,7 +19,7 @@ const sends = 3;
 
 enum DeviceMode {
     launcher = 'LAUNCHER',
-    keyboard = 'KEYBOARD'
+    keyboard = 'KEYBOARD',
 }
 
 const midiPorts = deviceNames.length;
@@ -21,7 +27,6 @@ const midiPorts = deviceNames.length;
 host.defineMidiPorts(midiPorts, midiPorts);
 
 host.addDeviceNameBasedDiscoveryPair(deviceNames, deviceNames);
-
 
 interface PadState {
     armed: boolean;
@@ -69,12 +74,12 @@ class ApcMini {
     }
 
     public render() {
-        const {mode} = this;
-        const {midiOut, launcherPads} = this;
+        const { mode } = this;
+        const { midiOut, launcherPads } = this;
         switch (mode) {
             case DeviceMode.launcher:
                 launcherPads.forEach((pad) => {
-                    const {note, empty, playing, isGroup, toPlay} = pad;
+                    const { note, empty, playing, isGroup, toPlay } = pad;
                     const stopedCode = isGroup === true ? 3 : 5;
                     const playingCode = isGroup === true ? 2 : 1;
                     const emptyCode = isGroup === true ? 6 : 0;
@@ -88,7 +93,11 @@ class ApcMini {
                         midiOut.sendMidi(144, note, goingToPlayCode);
                         return;
                     }
-                    midiOut.sendMidi(144, note, playing ? playingCode : stopedCode);
+                    midiOut.sendMidi(
+                        144,
+                        note,
+                        playing ? playingCode : stopedCode
+                    );
                 });
                 break;
         }
@@ -97,15 +106,17 @@ class ApcMini {
     private async init() {
         for (let c = 0; c < 8; c++) {
             for (let r = 0; r < 8; r++) {
-                this.midiOut.sendMidi(144, (56 + c) - (8 * r), 0)
+                this.midiOut.sendMidi(144, 56 + c - 8 * r, 0);
             }
         }
         this.register();
-        this.midiIn.setMidiCallback((status, data1) => this.onMidiIn(status, data1));
+        this.midiIn.setMidiCallback((status, data1) =>
+            this.onMidiIn(status, data1)
+        );
     }
 
     public unregister() {
-        const {bank} = this;
+        const { bank } = this;
         const scene = bank.sceneBank();
 
         scene.unsubscribe();
@@ -113,20 +124,20 @@ class ApcMini {
     }
 
     private register() {
-        const {bank, midiOut, launcherPads} = this;
+        const { bank, midiOut, launcherPads } = this;
         const scene = bank.sceneBank();
 
         scene.canScrollBackwards().addValueObserver((b) => {
-            midiOut.sendMidi(144, 83, b === true ? 127 : 0)
+            midiOut.sendMidi(144, 83, b === true ? 127 : 0);
         });
         scene.canScrollForwards().addValueObserver((b) => {
-            midiOut.sendMidi(144, 84, b === true ? 127 : 0)
+            midiOut.sendMidi(144, 84, b === true ? 127 : 0);
         });
         bank.canScrollBackwards().addValueObserver((b) => {
-            midiOut.sendMidi(144, 86, b === true ? 127 : 0)
+            midiOut.sendMidi(144, 86, b === true ? 127 : 0);
         });
         bank.canScrollForwards().addValueObserver((b) => {
-            midiOut.sendMidi(144, 85, b === true ? 127 : 0)
+            midiOut.sendMidi(144, 85, b === true ? 127 : 0);
         });
 
         const colSize = bank.getSizeOfBank();
@@ -145,39 +156,51 @@ class ApcMini {
                     isGroup: false,
                     isGroupExpanded: false,
                     toPlay: false,
-                    note: (56 + c) - (r * 8),
+                    note: 56 + c - r * 8,
                     c,
-                    r
+                    r,
                 });
 
                 const cell = rows.getItemAt(r);
 
                 cell.hasContent().addValueObserver((b) => {
-                    this.setState({
-                        empty: !b,
-                    }, c, r)
+                    this.setState(
+                        {
+                            empty: !b,
+                        },
+                        c,
+                        r
+                    );
                 });
                 cell.isPlaying().addValueObserver((b) => {
-                    this.setState({
-                        playing: b,
-                    }, c, r)
+                    this.setState(
+                        {
+                            playing: b,
+                        },
+                        c,
+                        r
+                    );
                 });
                 cell.isPlaybackQueued().addValueObserver((b) => {
-                    this.setState({
-                        toPlay: b,
-                    }, c, r)
+                    this.setState(
+                        {
+                            toPlay: b,
+                        },
+                        c,
+                        r
+                    );
                 });
             }
 
             col.isGroup().addValueObserver((isGroup) => {
-                this.setColState({isGroup}, c);
+                this.setColState({ isGroup }, c);
             });
             col.isGroupExpanded().markInterested();
 
             const arm = col.arm();
 
             arm.addValueObserver((armed) => {
-                this.setColState({armed}, c)
+                this.setColState({ armed }, c);
             });
 
             col.isStopped().addValueObserver((b) => {
@@ -187,12 +210,12 @@ class ApcMini {
     }
 
     private launchClip(c: number, r: number) {
-        const {bank} = this;
+        const { bank } = this;
         bank.getItemAt(c).clipLauncherSlotBank().getItemAt(r).launch();
     }
 
     private stopTrack(c) {
-        const {bank} = this;
+        const { bank } = this;
         bank.getItemAt(c).stop();
     }
 
@@ -204,7 +227,7 @@ class ApcMini {
                     ...pad,
                     ...newState,
                     changed: true,
-                }
+                };
             }
             return pad;
         });
@@ -217,23 +240,23 @@ class ApcMini {
                 return {
                     ...pad,
                     ...newState,
-                    changed: true
-                }
+                    changed: true,
+                };
             }
             return pad;
         });
     }
 
     private toggleExpand(c: number) {
-        const {bank} = this;
+        const { bank } = this;
         const expanded = bank.getItemAt(c).isGroupExpanded().get();
         bank.getItemAt(c).isGroupExpanded().set(!expanded);
     }
 
     private onMidiIn(status: number, data1: number) {
-        const {bank, scenes, launcherPads, mode} = this;
+        const { bank, scenes, launcherPads, mode } = this;
         const scene = bank.sceneBank();
-        println(JSON.stringify({status, data1}));
+        println(JSON.stringify({ status, data1 }));
 
         switch (mode) {
             case DeviceMode.launcher:
@@ -264,14 +287,16 @@ class ApcMini {
                                 if (data1 >= 64 && data1 < 64 + gridSize) {
                                     const c = data1 - 64;
                                     if (!this.isShift) {
-                                        this.stopTrack(c)
+                                        this.stopTrack(c);
                                         return;
                                     }
                                     this.toggleExpand(c);
                                 }
-                                const pad = launcherPads.find(pad => pad.note === data1)
+                                const pad = launcherPads.find(
+                                    (pad) => pad.note === data1
+                                );
                                 if (pad) {
-                                    const {c, r, isGroup} = pad;
+                                    const { c, r, isGroup } = pad;
                                     if (!this.isShift) {
                                         this.launchClip(c, r);
                                         return;
@@ -280,10 +305,8 @@ class ApcMini {
                                         this.toggleExpand(c);
                                         return;
                                     }
-
                                 }
                                 break;
-
                         }
                         // this.noteInput.sendRawMidiEvent(status, data1, data2);
                         break;
@@ -308,22 +331,20 @@ async function init() {
     // const app = host.createApplication();
     for (let i = 0; i < midiPorts; i++) {
         controllers.push(new ApcMini(i));
-
     }
-    println("test initialized!");
-
+    println('test initialized!');
 }
 
 function flush() {
     controllers.forEach((c) => {
         c.render();
-    })
-    println("flushed");
+    });
+    println('flushed');
 }
 
 function exit() {
     controllers.forEach((c) => {
         c.unregister();
-    })
-    println("exited");
+    });
+    println('exited');
 }

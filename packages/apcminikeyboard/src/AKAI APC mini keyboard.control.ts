@@ -1,7 +1,13 @@
 loadAPI(17);
 host.setShouldFailOnDeprecatedUse(true);
 
-host.defineController("Drakh", "AKAI APC mini keyboard", "0.1", "afe40d74-df95-4637-9a79-6f773aa7fc64", "drakh");
+host.defineController(
+    'Drakh',
+    'AKAI APC mini keyboard',
+    '0.1',
+    'afe40d74-df95-4637-9a79-6f773aa7fc64',
+    'drakh'
+);
 
 const deviceNames = [
     'APC MINI',
@@ -16,7 +22,6 @@ const midiPorts = deviceNames.length;
 host.defineMidiPorts(midiPorts, midiPorts);
 
 host.addDeviceNameBasedDiscoveryPair(deviceNames, deviceNames);
-
 
 interface Pad {
     key: number;
@@ -45,9 +50,40 @@ class ApcMini {
 
         // preferences.getEnumSetting("Mode", "Global", ["Launcher", "Keyboard"] as any, "Launcher");
 
-        const rootNote = settings.getEnumSetting("ROOT Note", "Scales", ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"] as any, "C");
-        const scale = settings.getEnumSetting("Scale", "Scales", ["Major", "Minor"] as any, "Major");
-        const octave = settings.getNumberSetting("Octave", "Scales", 0, 4, 1, "", 1);
+        const rootNote = settings.getEnumSetting(
+            'ROOT Note',
+            'Scales',
+            [
+                'A',
+                'A#',
+                'B',
+                'C',
+                'C#',
+                'D',
+                'D#',
+                'E',
+                'F',
+                'F#',
+                'G',
+                'G#',
+            ] as any,
+            'C'
+        );
+        const scale = settings.getEnumSetting(
+            'Scale',
+            'Scales',
+            ['Major', 'Minor'] as any,
+            'Major'
+        );
+        const octave = settings.getNumberSetting(
+            'Octave',
+            'Scales',
+            0,
+            4,
+            1,
+            '',
+            1
+        );
 
         rootNote.markInterested();
         scale.markInterested();
@@ -57,17 +93,19 @@ class ApcMini {
         const sc = scale.get();
         const oct = octave.get();
 
-        println(JSON.stringify({
-            r,
-            sc,
-            oct
-        }));
+        println(
+            JSON.stringify({
+                r,
+                sc,
+                oct,
+            })
+        );
 
         rootNote.addValueObserver((v) => {
-            println(`Root ${v}`)
+            println(`Root ${v}`);
         });
         scale.addValueObserver((v) => {
-            println(`Scale ${v}`)
+            println(`Scale ${v}`);
         });
 
         const args: string[] = [];
@@ -81,7 +119,6 @@ class ApcMini {
             const scale = [0, 2, 4, 5, 7, 9, 11];
 
             if (i < 64) {
-
                 const p = `000${i.toString(16)}`.slice(-2);
                 args.push(`80${p}??`);
                 args.push(`90${p}??`);
@@ -96,17 +133,25 @@ class ApcMini {
 
                 this.midiOut.sendMidi(144, i, isRoot ? 3 : 5);
 
-                table.push(note + 48 + (octave * 12));
+                table.push(note + 48 + octave * 12);
             } else {
-                table.push(-1)
+                table.push(-1);
             }
         }
 
-        const noteInput = this.midiIn.createNoteInput(`API-mini-keyboard-${deviceIdx}`, args as any);
+        const noteInput = this.midiIn.createNoteInput(
+            `API-mini-keyboard-${deviceIdx}`,
+            args as any
+        );
         noteInput.setShouldConsumeEvents(false);
         noteInput.includeInAllInputs().set(true);
         noteInput.setKeyTranslationTable(table);
-        const piano = surface.createPianoKeyboard(`APC-mini-piano-${deviceIdx}`, 64, 0, 0);
+        const piano = surface.createPianoKeyboard(
+            `APC-mini-piano-${deviceIdx}`,
+            64,
+            0,
+            0
+        );
         piano.setNoteInput(noteInput);
 
         this.surface = surface;
@@ -119,17 +164,15 @@ class ApcMini {
         println('controller initialised');
     }
 
-    public render() {
-    }
+    public render() {}
 
     private register() {
-        const {bank, midiOut, midiIn} = this;
+        const { bank, midiOut, midiIn } = this;
         // for (let c = 0; c < 8; c++) {
         //     for (let r = 0; r < 8; r++) {
         //         midiOut.sendMidi(144, (56 + c) - (8 * r), 0)
         //     }
         // }
-
 
         // const scene = bank.sceneBank();
         //
@@ -151,14 +194,15 @@ class ApcMini {
         // for (let c = 0; c < colSize; c++) {
         //     const col = bank.getItemAt(c);
         // }
-        midiIn.setMidiCallback((status, data1, data2) => this.onMidiIn(status, data1, data2));
+        midiIn.setMidiCallback((status, data1, data2) =>
+            this.onMidiIn(status, data1, data2)
+        );
     }
 
-    public unregister() {
-    }
+    public unregister() {}
 
     private onMidiIn(status: number, data1: number, data2: number) {
-        println(JSON.stringify({status, data1, data2}))
+        println(JSON.stringify({ status, data1, data2 }));
         // const {bank, scenes, launcherPads} = this;
         // const scene = bank.sceneBank();
         // println(JSON.stringify({status, data1}));
@@ -207,22 +251,20 @@ async function init() {
     // const app = host.createApplication();
     for (let i = 0; i < midiPorts; i++) {
         controllers.push(new ApcMini(i));
-
     }
-    println("test initialized!");
-
+    println('test initialized!');
 }
 
 function flush() {
     controllers.forEach((c) => {
         c.render();
-    })
-    println("flushed");
+    });
+    println('flushed');
 }
 
 function exit() {
     controllers.forEach((c) => {
         c.unregister();
-    })
-    println("exited");
+    });
+    println('exited');
 }
