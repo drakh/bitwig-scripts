@@ -24,6 +24,10 @@ interface ArmedPad extends Pad {
     armed: boolean;
 }
 
+interface SideBarPad extends Pad {
+    on: boolean;
+}
+
 interface KeyboardSettings {
     scaleSettings: API.SettableEnumValue;
     rootNoteSettings: API.SettableEnumValue;
@@ -41,14 +45,24 @@ interface MidiEvent {
     data2: number;
 }
 
+enum EVENT_STATUS {
+    NOTE_ON = 144,
+    NOTE_OFF = 128,
+}
+
+enum CONTROLLER_MODE {
+    LAUNCHER = 'LAUNCHER',
+    KEYBOARD = 'KEYBOARD',
+}
+
 enum BUTTON {
     UP = 82,
     DOWN = 83,
-    FORWARD = 84,
-    BACKWARD = 85,
+    RIGHT = 84,
+    LEFT = 85,
 
-    SWITCH_TO_KEYBOARD = 87,
-    SWICTH_TO_LAUNCHER = 88,
+    SWICTH_TO_LAUNCHER = 87,
+    SWITCH_TO_KEYBOARD = 88,
 
     STOP_ALL = 89,
 
@@ -129,11 +143,13 @@ host.addDeviceNameBasedDiscoveryPair(DEVICE_NAMES, DEVICE_NAMES);
 const BOTTOM_ROW_START = 64;
 
 const BOTTOM_ROW: Pad[] = [];
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < GRID_SIZE; i++) {
     BOTTOM_ROW.push({
         pad: BOTTOM_ROW_START + i,
     });
 }
+
+const DEFINED_MODES = Object.keys(CONTROLLER_MODE);
 
 const DEFINED_SCALES = Object.keys(SCALE);
 
@@ -305,11 +321,53 @@ class ApcBase {
     protected activate() {
         this.active = true;
         this.clearPads();
+        this.clearBottomBar();
+        this.clearSideBar();
     }
 
     protected deactivate() {
         this.active = false;
         this.midiEvents = [];
+    }
+
+    protected renderPad(pad: number, color: BUTTON_COLOR) {
+        this.addEvent({
+            status: EVENT_STATUS.NOTE_ON,
+            data1: pad,
+            data2: color,
+        });
+    }
+
+    protected renderPadOff({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.OFF);
+    }
+
+    protected renderPadOn({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.GREEN);
+    }
+
+    protected renderPadGreen({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.GREEN);
+    }
+
+    protected renderPadGreenBlink({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.GREEN_BLINK);
+    }
+
+    protected renderPadRed({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.RED);
+    }
+
+    protected renderPadRedBlink({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.RED_BLINK);
+    }
+
+    protected renderPadOrange({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.ORANGE);
+    }
+
+    protected renderPadOrangeBlink({ pad }: Pad) {
+        this.renderPad(pad, BUTTON_COLOR.ORANGE_BLINK);
     }
 
     protected handleMidiIn({ status, data1, data2 }: MidiEvent) {
@@ -324,12 +382,20 @@ class ApcBase {
     }
 
     protected clearPads() {
-        for (let pad = 0; pad < 64; pad++) {
-            this.addEvent({
-                status: 144,
-                data1: pad,
-                data2: BUTTON_COLOR.OFF,
-            });
+        this.clear(0, 64);
+    }
+
+    protected clearBottomBar() {
+        this.clear(64, 64 + GRID_SIZE);
+    }
+
+    protected clearSideBar() {
+        this.clear(82, 82 + GRID_SIZE);
+    }
+
+    private clear(min: number, max: number) {
+        for (let pad = min; pad < max; pad++) {
+            this.renderPadOff({ pad });
         }
     }
 }
@@ -386,6 +452,7 @@ class ApcKeyboard extends ApcBase {
 
     public activate() {
         super.activate();
+
         this.renderArmed();
         this.renderKeyboard();
         this.setTranslationTable();
@@ -401,29 +468,30 @@ class ApcKeyboard extends ApcBase {
         const { armPads, bank } = this;
         if (this.isActive()) {
             if (
-                status === 144 &&
+                status === EVENT_STATUS.NOTE_ON &&
                 data1 >= BOTTOM_ROW_START &&
-                data1 < BOTTOM_ROW_START + 8
+                data1 < BOTTOM_ROW_START + GRID_SIZE
             ) {
                 const idx = data1 - BOTTOM_ROW_START;
                 const { armed } = armPads[idx];
                 const track = bank.getItemAt(idx);
-                // !armed
-                //     ? track.addNoteSource(noteInput)
-                //     : track.removeNoteSource(noteInput);
                 track.arm().set(!armed);
             }
             if (!this.isShift()) {
                 if (
-                    (status === 144 || status === 128) &&
+                    (status === EVENT_STATUS.NOTE_ON ||
+                        status === EVENT_STATUS.NOTE_OFF) &&
                     data1 >= 0 &&
                     data1 < 64
                 ) {
-                    this.renderMatchedPads(data1, status === 144);
+                    this.renderMatchedPads(
+                        data1,
+                        status === EVENT_STATUS.NOTE_ON
+                    );
                     return;
                 }
             }
-            if (status === 144) {
+            if (status === EVENT_STATUS.NOTE_ON) {
                 const rootNoteButton = ROOT_SETTINGS_LAYOU.find(
                     ({ pad }) => pad === data1
                 );
@@ -562,11 +630,7 @@ class ApcKeyboard extends ApcBase {
     }
 
     private renderArmPad({ pad, armed }: ArmedPad) {
-        this.addEvent({
-            status: 144,
-            data1: pad,
-            data2: armed ? BUTTON_COLOR.GREEN : BUTTON_COLOR.OFF,
-        });
+        armed ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
     }
 
     private renderArmed() {
@@ -588,18 +652,16 @@ class ApcKeyboard extends ApcBase {
     private renderKeyboard() {
         const { keyPads } = this;
         keyPads.forEach((pad) => {
-            this.renderPadOff(pad);
+            this.renderKeyPadOff(pad);
         });
     }
 
     private renderRootSettings() {
         if (this.isActive() && this.isShift()) {
             ROOT_SETTINGS_LAYOU.forEach(({ pad, root }) => {
-                this.renderPadOff({
-                    isRoot: root === this.root,
-                    pad: pad,
-                    note: -1,
-                });
+                root === this.root
+                    ? this.renderPadRed({ pad })
+                    : this.renderPadOrange({ pad });
             });
         }
     }
@@ -607,11 +669,9 @@ class ApcKeyboard extends ApcBase {
     private renderOctaveSettings() {
         if (this.isActive() && this.isShift()) {
             OCTAVE_SETTINGS_LAYOUT.forEach(({ pad, octave }) => {
-                this.renderPadOff({
-                    isRoot: octave === this.octave,
-                    pad: pad,
-                    note: -1,
-                });
+                octave === this.octave
+                    ? this.renderPadRed({ pad })
+                    : this.renderPadOrange({ pad });
             });
         }
     }
@@ -619,11 +679,9 @@ class ApcKeyboard extends ApcBase {
     private renderScaleSettings() {
         if (this.isActive() && this.isShift()) {
             SCALE_SETTINGS_LAYOUT.forEach(({ pad, scale }) => {
-                this.renderPadOff({
-                    isRoot: scale === this.scale,
-                    pad: pad,
-                    note: -1,
-                });
+                scale === this.scale
+                    ? this.renderPadRed({ pad })
+                    : this.renderPadOrange({ pad });
             });
         }
     }
@@ -634,20 +692,12 @@ class ApcKeyboard extends ApcBase {
         this.renderScaleSettings();
     }
 
-    private renderPadOff({ isRoot, pad }: KeyboardPad) {
-        this.addEvent({
-            status: 144,
-            data1: pad,
-            data2: isRoot ? BUTTON_COLOR.RED : BUTTON_COLOR.ORANGE,
-        });
+    private renderKeyPadOff({ isRoot, pad }: KeyboardPad) {
+        isRoot ? this.renderPadRed({ pad }) : this.renderPadOrange({ pad });
     }
 
-    private renderPadOn({ pad }: KeyboardPad) {
-        this.addEvent({
-            status: 144,
-            data1: pad,
-            data2: BUTTON_COLOR.GREEN,
-        });
+    private renderKeyPadOn({ pad }: KeyboardPad) {
+        this.renderPadOn({ pad });
     }
 
     private setTranslationTable() {
@@ -686,22 +736,184 @@ class ApcKeyboard extends ApcBase {
         const { note } = keyPads[padNum];
         const matchedPads = keyPads.filter((pad) => pad.note === note);
         matchedPads.forEach((item) => {
-            active === true ? this.renderPadOn(item) : this.renderPadOff(item);
+            active === true
+                ? this.renderKeyPadOn(item)
+                : this.renderKeyPadOff(item);
         });
+    }
+}
+
+class ApcSidebar extends ApcBase {
+    private readonly modePreferences: API.SettableEnumValue;
+    private readonly mainScene: API.SceneBank;
+    private readonly bank: API.TrackBank;
+    private readonly bankScene: API.SceneBank;
+
+    private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
+    private pads: SideBarPad[] = [
+        { pad: BUTTON.UP, on: false },
+        { pad: BUTTON.DOWN, on: false },
+        { pad: BUTTON.LEFT, on: false },
+        { pad: BUTTON.RIGHT, on: false },
+        { pad: BUTTON.SWITCH_TO_KEYBOARD, on: false },
+        { pad: BUTTON.SWICTH_TO_LAUNCHER, on: false },
+        { pad: BUTTON.STOP_ALL, on: true },
+    ];
+
+    constructor(
+        deviceIdx: number,
+        midiIn: API.MidiIn,
+        midiOut: API.MidiOut,
+        mode: CONTROLLER_MODE,
+        bank: API.TrackBank,
+        mainScene: API.SceneBank,
+        modePreferences: API.SettableEnumValue
+    ) {
+        super(deviceIdx, midiIn, midiOut);
+        const bankScene = bank.sceneBank();
+        this.mode = mode;
+        this.modePreferences = modePreferences;
+        this.mainScene = mainScene;
+        this.bank = bank;
+        this.bankScene = bankScene;
+
+        bank.canScrollBackwards().addValueObserver((on) => {
+            this.setPad({ pad: BUTTON.LEFT, on });
+        });
+        bank.canScrollForwards().addValueObserver((on) => {
+            this.setPad({ pad: BUTTON.RIGHT, on });
+        });
+
+        bankScene.canScrollBackwards().addValueObserver((on) => {
+            this.setPad({ pad: BUTTON.UP, on });
+        });
+        bankScene.canScrollForwards().addValueObserver((on) => {
+            this.setPad({ pad: BUTTON.DOWN, on });
+        });
+
+        this.activate();
+    }
+
+    setPad(newPad: SideBarPad) {
+        const { pads } = this;
+        this.pads = pads.map(({ pad, on }) => {
+            if (pad === newPad.pad) {
+                return newPad;
+            }
+            return { pad, on };
+        });
+        this.render();
+    }
+
+    public setShift(s: boolean) {
+        super.setShift(s);
+        this.clearSideBar();
+        this.render();
+    }
+
+    public handleMidiIn({ status, data1, data2 }: MidiEvent) {
+        super.handleMidiIn({ status, data1, data2 });
+
+        const { modePreferences, mainScene, bank, bankScene } = this;
+        if (this.isShift()) {
+            return;
+        }
+
+        if (status === EVENT_STATUS.NOTE_ON) {
+            if (data1 === BUTTON.STOP_ALL) {
+                mainScene.stop();
+                return;
+            }
+            if (data1 === BUTTON.SWICTH_TO_LAUNCHER) {
+                modePreferences.set(CONTROLLER_MODE.LAUNCHER);
+                return;
+            }
+            if (data1 === BUTTON.SWITCH_TO_KEYBOARD) {
+                modePreferences.set(CONTROLLER_MODE.KEYBOARD);
+                return;
+            }
+            if (data1 === BUTTON.DOWN) {
+                bankScene.scrollPageForwards();
+                mainScene.scrollPageForwards();
+            }
+            if (data1 === BUTTON.UP) {
+                bankScene.scrollPageBackwards();
+                mainScene.scrollPageBackwards();
+            }
+            if (data1 === BUTTON.RIGHT) {
+                bank.scrollPageForwards();
+            }
+            if (data1 === BUTTON.LEFT) {
+                bank.scrollPageBackwards();
+            }
+        }
+    }
+
+    public setMode(mode: CONTROLLER_MODE) {
+        this.mode = mode;
+        this.setPad({
+            pad: BUTTON.SWICTH_TO_LAUNCHER,
+            on: mode === CONTROLLER_MODE.KEYBOARD,
+        });
+        this.setPad({
+            pad: BUTTON.SWITCH_TO_KEYBOARD,
+            on: mode === CONTROLLER_MODE.LAUNCHER,
+        });
+    }
+
+    protected activate() {
+        super.activate();
+        this.clearSideBar();
+        this.render();
+    }
+
+    private render() {
+        if (!this.isShift()) {
+            const { pads } = this;
+            pads.forEach(({ pad, on }) => {
+                on ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
+            });
+        }
     }
 }
 
 class ApcMini {
     private readonly keyboard: ApcKeyboard;
+    private readonly sidebar: ApcSidebar;
+
+    private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
 
     constructor(deviceIdx: number) {
+        const { mode } = this;
         const midiIn = host.getMidiInPort(deviceIdx);
         const midiOut = host.getMidiOutPort(deviceIdx);
         const settings = host.getDocumentState();
         const preferences = host.getPreferences();
 
+        const modePreferences = preferences.getEnumSetting(
+            `Mode - ${deviceIdx}`,
+            `Global`,
+            DEFINED_MODES,
+            mode
+        );
+        modePreferences.addValueObserver((v) => {
+            this.setMode(v as CONTROLLER_MODE);
+        });
+
         const bank = host.createTrackBank(GRID_SIZE, SENDS, GRID_SIZE);
         bank.setShouldShowClipLauncherFeedback(true);
+        const sceneBank = host.createSceneBank(GRID_SIZE);
+        sceneBank.setIndication(true);
+
+        this.sidebar = new ApcSidebar(
+            deviceIdx,
+            midiIn,
+            midiOut,
+            mode,
+            bank,
+            sceneBank,
+            modePreferences
+        );
 
         this.keyboard = new ApcKeyboard(
             deviceIdx,
@@ -711,7 +923,8 @@ class ApcMini {
             preferences,
             bank
         );
-        this.keyboard.activate();
+
+        this.activateCurrentMode();
 
         const surface = host.createHardwareSurface();
 
@@ -721,6 +934,25 @@ class ApcMini {
             this.handleMidiIn({ status, data1, data2 })
         );
         println('started');
+    }
+
+    private setMode(mode: CONTROLLER_MODE) {
+        const { sidebar } = this;
+        this.mode = mode;
+        sidebar.setMode(mode);
+        this.activateCurrentMode();
+    }
+
+    private activateCurrentMode() {
+        const { mode, keyboard } = this;
+        switch (mode) {
+            case CONTROLLER_MODE.LAUNCHER:
+                keyboard.deactivate();
+                break;
+            case CONTROLLER_MODE.KEYBOARD:
+                keyboard.activate();
+                break;
+        }
     }
 
     private registerShift(
@@ -751,14 +983,17 @@ class ApcMini {
 
     public flush() {
         this.keyboard.flush();
+        this.sidebar.flush();
     }
 
     private setShift(v: boolean) {
         this.keyboard.setShift(v);
+        this.sidebar.setShift(v);
     }
 
     private handleMidiIn(midiEvent: MidiEvent) {
         this.keyboard.handleMidiIn(midiEvent);
+        this.sidebar.handleMidiIn(midiEvent);
     }
 }
 

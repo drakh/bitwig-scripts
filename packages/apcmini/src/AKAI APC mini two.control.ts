@@ -172,6 +172,7 @@ class ApcMini {
                         r
                     );
                 });
+
                 cell.isPlaying().addValueObserver((b) => {
                     this.setState(
                         {
@@ -181,6 +182,7 @@ class ApcMini {
                         r
                     );
                 });
+
                 cell.isPlaybackQueued().addValueObserver((b) => {
                     this.setState(
                         {
