@@ -759,14 +759,25 @@ class ApcSidebar extends ApcBase {
     private readonly bankScene: API.SceneBank;
 
     private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
-    private pads: OnOffPad[] = [
+    private navigationPads: OnOffPad[] = [
         { pad: BUTTON.UP, on: false },
         { pad: BUTTON.DOWN, on: false },
         { pad: BUTTON.LEFT, on: false },
         { pad: BUTTON.RIGHT, on: false },
         { pad: BUTTON.SWITCH_TO_KEYBOARD, on: false },
         { pad: BUTTON.SWICTH_TO_LAUNCHER, on: false },
+        { pad: 88, on: false },
         { pad: BUTTON.STOP_ALL, on: true },
+    ];
+    private sceneStatePads: OnOffPad[] = [
+        { pad: 82, on: true },
+        { pad: 83, on: true },
+        { pad: 84, on: true },
+        { pad: 85, on: true },
+        { pad: 86, on: true },
+        { pad: 87, on: true },
+        { pad: 88, on: true },
+        { pad: 89, on: true },
     ];
 
     constructor(
@@ -804,8 +815,8 @@ class ApcSidebar extends ApcBase {
     }
 
     setPad(newPad: OnOffPad) {
-        const { pads } = this;
-        this.pads = pads.map(({ pad, on }) => {
+        const { navigationPads } = this;
+        this.navigationPads = navigationPads.map(({ pad, on }) => {
             if (pad === newPad.pad) {
                 return newPad;
             }
@@ -816,7 +827,6 @@ class ApcSidebar extends ApcBase {
 
     public setShift(s: boolean) {
         super.setShift(s);
-        this.clearSideBar();
         this.render();
     }
 
@@ -824,11 +834,16 @@ class ApcSidebar extends ApcBase {
         super.handleMidiIn({ status, data1, data2 }, 'sidebar');
 
         const { modePreferences, mainScene, bank, bankScene } = this;
-        if (this.isShift()) {
-            return;
-        }
 
         if (status === EVENT_STATUS.NOTE_ON) {
+            if (this.isShift()) {
+                if (data1 >= 82 && data1 < 82 + 8) {
+                    const sceneIdx = data1 - 82;
+                    mainScene.getItemAt(sceneIdx).launch();
+                    return;
+                }
+                return;
+            }
             if (data1 === BUTTON.STOP_ALL) {
                 mainScene.stop();
                 return;
@@ -872,17 +887,13 @@ class ApcSidebar extends ApcBase {
 
     protected activate() {
         super.activate();
-        this.clearSideBar();
         this.render();
     }
 
     private render() {
-        if (!this.isShift()) {
-            const { pads } = this;
-            pads.forEach(({ pad, on }) => {
-                this.renderOnOffPad({ pad, on });
-            });
-        }
+        const { navigationPads, sceneStatePads } = this;
+        const padsToRender = this.isShift() ? sceneStatePads : navigationPads;
+        padsToRender.forEach((pad) => this.renderOnOffPad(pad));
     }
 }
 
@@ -1145,25 +1156,20 @@ class ApcMini {
 
     constructor(deviceIdx: number) {
         const { mode } = this;
+
         const midiIn = host.getMidiInPort(deviceIdx);
         const midiOut = host.getMidiOutPort(deviceIdx);
         const settings = host.getDocumentState();
         const preferences = host.getPreferences();
-
+        const bank = host.createTrackBank(GRID_SIZE, SENDS, GRID_SIZE);
+        const sceneBank = host.createSceneBank(GRID_SIZE);
+        const surface = host.createHardwareSurface();
         const modePreferences = preferences.getEnumSetting(
             `Mode - ${deviceIdx}`,
             `Global`,
             DEFINED_MODES,
             mode
         );
-        modePreferences.addValueObserver((v) => {
-            this.setMode(v as CONTROLLER_MODE);
-        });
-
-        const bank = host.createTrackBank(GRID_SIZE, SENDS, GRID_SIZE);
-        bank.setShouldShowClipLauncherFeedback(true);
-        const sceneBank = host.createSceneBank(GRID_SIZE);
-        sceneBank.setIndication(true);
 
         this.sidebar = new ApcSidebar(
             deviceIdx,
@@ -1186,11 +1192,16 @@ class ApcMini {
 
         this.launcher = new ApcLauncher(deviceIdx, midiIn, midiOut, bank);
 
-        this.activateCurrentMode();
-
-        const surface = host.createHardwareSurface();
+        bank.setShouldShowClipLauncherFeedback(true);
+        sceneBank.setIndication(true);
 
         this.registerShift(deviceIdx, midiIn, surface);
+
+        modePreferences.addValueObserver((v) => {
+            this.setMode(v as CONTROLLER_MODE);
+        });
+
+        this.activateCurrentMode();
 
         midiIn.setMidiCallback((status, data1, data2) =>
             this.handleMidiIn({ status, data1, data2 })
@@ -1199,14 +1210,12 @@ class ApcMini {
     }
 
     private setMode(mode: CONTROLLER_MODE) {
-        const { sidebar } = this;
         this.mode = mode;
-        sidebar.setMode(mode);
         this.activateCurrentMode();
     }
 
     private activateCurrentMode() {
-        const { mode, keyboard, launcher } = this;
+        const { mode, keyboard, launcher, sidebar } = this;
         switch (mode) {
             case CONTROLLER_MODE.LAUNCHER:
                 launcher.activate();
@@ -1217,6 +1226,7 @@ class ApcMini {
                 keyboard.activate();
                 break;
         }
+        sidebar.setMode(mode);
     }
 
     private registerShift(
