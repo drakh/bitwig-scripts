@@ -125,9 +125,9 @@ host.setShouldFailOnDeprecatedUse(true);
 
 host.defineController(
     'Drakh',
-    'AKAI APC mini keyboard',
+    'AKAI APC mini',
     '0.1',
-    'afe40d74-df95-4637-9a79-6f773aa7fc64',
+    '165cb4eb-3c8f-46e4-b283-4a93401cd0f2',
     'drakh'
 );
 

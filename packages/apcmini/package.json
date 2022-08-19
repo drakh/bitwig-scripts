@@ -1,0 +1,16 @@
+{
+    "name": "apcmini",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "dev": "tsc --watch --project tsconfig.json",
+        "build": "tsc --project tsconfig.json"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "typed-bitwig-api": "17.0.1",
+        "typescript": "4.7.4"
+    }
+}
