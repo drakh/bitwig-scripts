@@ -20,12 +20,17 @@ interface OctaveSettingsPad extends Pad {
     octave: Octave;
 }
 
-interface ArmedPad extends Pad {
-    armed: boolean;
+interface OnOffPad extends Pad {
+    on: boolean;
 }
 
-interface SideBarPad extends Pad {
-    on: boolean;
+interface LauncherPad extends Pad {
+    empty: boolean;
+    playing: boolean;
+    toPlay: boolean;
+    isGroup: boolean;
+    c: number;
+    r: number;
 }
 
 interface KeyboardSettings {
@@ -338,6 +343,10 @@ class ApcBase {
         });
     }
 
+    protected renderOnOffPad({ pad, on }: OnOffPad) {
+        on ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
+    }
+
     protected renderPadOff({ pad }: Pad) {
         this.renderPad(pad, BUTTON_COLOR.OFF);
     }
@@ -370,8 +379,8 @@ class ApcBase {
         this.renderPad(pad, BUTTON_COLOR.ORANGE_BLINK);
     }
 
-    protected handleMidiIn({ status, data1, data2 }: MidiEvent) {
-        println(JSON.stringify({ status, data1, data2 }));
+    protected handleMidiIn({ status, data1, data2 }: MidiEvent, text = '') {
+        println(`${text}:${JSON.stringify({ status, data1, data2 })}`);
     }
 
     protected addEvent(midiEvent: MidiEvent) {
@@ -406,7 +415,7 @@ class ApcKeyboard extends ApcBase {
     private readonly globalSettings: KeyboardSettings;
 
     private keyPads: KeyboardPad[] = [];
-    private armPads: ArmedPad[] = [];
+    private armPads: OnOffPad[] = [];
     private bank: API.TrackBank;
 
     private root: ROOT_NOTE = ROOT_NOTE.C;
@@ -426,7 +435,7 @@ class ApcKeyboard extends ApcBase {
         this.armPads = BOTTOM_ROW.map((item) => {
             return {
                 ...item,
-                armed: false,
+                on: false,
             };
         });
 
@@ -464,7 +473,7 @@ class ApcKeyboard extends ApcBase {
     }
 
     public handleMidiIn({ status, data1, data2 }: MidiEvent) {
-        super.handleMidiIn({ status, data1, data2 });
+        super.handleMidiIn({ status, data1, data2 }, 'keyboard');
         const { armPads, bank } = this;
         if (this.isActive()) {
             if (
@@ -473,9 +482,9 @@ class ApcKeyboard extends ApcBase {
                 data1 < BOTTOM_ROW_START + GRID_SIZE
             ) {
                 const idx = data1 - BOTTOM_ROW_START;
-                const { armed } = armPads[idx];
+                const { on } = armPads[idx];
                 const track = bank.getItemAt(idx);
-                track.arm().set(!armed);
+                track.arm().set(!on);
             }
             if (!this.isShift()) {
                 if (
@@ -621,16 +630,16 @@ class ApcKeyboard extends ApcBase {
 
     private setArmed(idx: number, armed: boolean) {
         const oldPad = this.armPads[idx];
-        const newPad = {
+        const newPad: OnOffPad = {
             ...oldPad,
-            armed,
+            on: armed,
         };
         this.armPads[idx] = newPad;
         this.renderArmPad(newPad);
     }
 
-    private renderArmPad({ pad, armed }: ArmedPad) {
-        armed ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
+    private renderArmPad({ pad, on }: OnOffPad) {
+        on ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
     }
 
     private renderArmed() {
@@ -750,7 +759,7 @@ class ApcSidebar extends ApcBase {
     private readonly bankScene: API.SceneBank;
 
     private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
-    private pads: SideBarPad[] = [
+    private pads: OnOffPad[] = [
         { pad: BUTTON.UP, on: false },
         { pad: BUTTON.DOWN, on: false },
         { pad: BUTTON.LEFT, on: false },
@@ -794,7 +803,7 @@ class ApcSidebar extends ApcBase {
         this.activate();
     }
 
-    setPad(newPad: SideBarPad) {
+    setPad(newPad: OnOffPad) {
         const { pads } = this;
         this.pads = pads.map(({ pad, on }) => {
             if (pad === newPad.pad) {
@@ -812,7 +821,7 @@ class ApcSidebar extends ApcBase {
     }
 
     public handleMidiIn({ status, data1, data2 }: MidiEvent) {
-        super.handleMidiIn({ status, data1, data2 });
+        super.handleMidiIn({ status, data1, data2 }, 'sidebar');
 
         const { modePreferences, mainScene, bank, bankScene } = this;
         if (this.isShift()) {
@@ -871,15 +880,266 @@ class ApcSidebar extends ApcBase {
         if (!this.isShift()) {
             const { pads } = this;
             pads.forEach(({ pad, on }) => {
-                on ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
+                this.renderOnOffPad({ pad, on });
             });
         }
+    }
+}
+
+class ApcLauncher extends ApcBase {
+    private readonly bank: API.TrackBank;
+    private launcherPads: LauncherPad[];
+    private bottomBar: {
+        trackPlayingPads: OnOffPad[];
+        trackGroupPads: OnOffPad[];
+    };
+
+    constructor(
+        deviceIdx: number,
+        midiIn: API.MidiIn,
+        midiOut: API.MidiOut,
+        bank: API.TrackBank
+    ) {
+        super(deviceIdx, midiIn, midiOut);
+        this.bank = bank;
+
+        const launcherPads: LauncherPad[] = [];
+        const trackPlayingPads: OnOffPad[] = [];
+        const trackGroupPads: OnOffPad[] = [];
+
+        const colSize = bank.getSizeOfBank();
+
+        for (let c = 0; c < colSize; c++) {
+            const bottomPad: OnOffPad = {
+                pad: 64 + c,
+                on: false,
+            };
+            trackPlayingPads.push(bottomPad);
+            trackGroupPads.push(bottomPad);
+
+            const col = bank.getItemAt(c);
+            const rows = col.clipLauncherSlotBank();
+            const rowsSize = rows.getSizeOfBank();
+            for (let r = 0; r < rowsSize; r++) {
+                launcherPads.push({
+                    pad: 56 + c - r * 8,
+                    toPlay: false,
+                    playing: false,
+                    empty: true,
+                    isGroup: false,
+                    c,
+                    r,
+                });
+
+                const cell = rows.getItemAt(r);
+                cell.hasContent().addValueObserver((hasContent) => {
+                    this.setLauncherPadState(
+                        {
+                            empty: !hasContent,
+                        },
+                        c,
+                        r
+                    );
+                });
+                cell.isPlaying().addValueObserver((playing) => {
+                    this.setLauncherPadState(
+                        {
+                            playing,
+                        },
+                        c,
+                        r
+                    );
+                });
+                cell.isPlaybackQueued().addValueObserver((toPlay) => {
+                    this.setLauncherPadState(
+                        {
+                            toPlay,
+                        },
+                        c,
+                        r
+                    );
+                });
+            }
+            col.isGroup().addValueObserver((isGroup) => {
+                this.updateBottomBarState(c, isGroup, 'group');
+                this.setLauncherColState({ isGroup }, c);
+            });
+            col.isGroupExpanded().markInterested();
+            col.isStopped().addValueObserver((off) => {
+                this.updateBottomBarState(c, !off, 'playing');
+            });
+        }
+
+        this.launcherPads = launcherPads;
+        this.bottomBar = {
+            trackPlayingPads,
+            trackGroupPads,
+        };
+    }
+
+    public flush() {
+        super.flush();
+    }
+
+    public handleMidiIn({ status, data1, data2 }: MidiEvent) {
+        super.handleMidiIn({ status, data1, data2 }, 'launcher');
+        const { launcherPads } = this;
+        if (status !== EVENT_STATUS.NOTE_ON) {
+            return;
+        }
+
+        const pad = launcherPads.find(({ pad }) => pad === data1);
+        const col =
+            data1 >= 64 && data1 < 64 + GRID_SIZE ? data1 - 64 : undefined;
+
+        if (this.isShift()) {
+            pad ? this.toggleExpand(pad.c) : null;
+            col !== undefined ? this.toggleExpand(col) : null;
+            return;
+        }
+        pad ? this.launchClip(pad.c, pad.r) : null;
+        col !== undefined ? this.stopTrack(col) : null;
+    }
+
+    public activate() {
+        super.activate();
+        this.renderLauncherPads();
+        this.renderBottomRow();
+    }
+
+    public deactivate() {
+        super.deactivate();
+    }
+
+    public setShift(s: boolean) {
+        super.setShift(s);
+        this.renderBottomRow();
+    }
+
+    private setLauncherColState(
+        newState: Partial<Omit<LauncherPad, 'c, r, pad'>>,
+        c: number
+    ) {
+        const { launcherPads } = this;
+        this.launcherPads = launcherPads.map((pad) => {
+            if (pad.c === c) {
+                return this.updateLauncherPad(pad, newState);
+            }
+            return pad;
+        });
+    }
+
+    private updateBottomBarState(
+        idx: number,
+        on: boolean,
+        w: 'group' | 'playing'
+    ) {
+        const {
+            bottomBar: { trackPlayingPads, trackGroupPads },
+        } = this;
+        const selected = w === 'group' ? trackGroupPads : trackPlayingPads;
+        const updated: OnOffPad[] = selected.map((item, i) => {
+            if (i === idx) {
+                const newIten = {
+                    ...item,
+                    on,
+                };
+                this.renderOnOffPad(newIten);
+                return newIten;
+            }
+            return item;
+        });
+        this.bottomBar = {
+            trackPlayingPads: w === 'playing' ? updated : trackPlayingPads,
+            trackGroupPads: w === 'group' ? updated : trackGroupPads,
+        };
+    }
+
+    private updateLauncherPad(
+        pad: LauncherPad,
+        newState: Partial<Omit<LauncherPad, 'c, r, pad'>>
+    ): LauncherPad {
+        const newPad = {
+            ...pad,
+            ...newState,
+        };
+        this.renderLauncherPad(newPad);
+        return newPad;
+    }
+
+    private setLauncherPadState(
+        newState: Partial<Omit<LauncherPad, 'c, r, pad'>>,
+        c: number,
+        r: number
+    ) {
+        const { launcherPads } = this;
+        this.launcherPads = launcherPads.map((pad) => {
+            if (pad.c === c && pad.r === r) {
+                return this.updateLauncherPad(pad, newState);
+            }
+            return pad;
+        });
+    }
+
+    private renderLauncherPad(item: LauncherPad) {
+        const { empty, playing, isGroup, toPlay, pad } = item;
+
+        if (empty) {
+            isGroup
+                ? this.renderPadOrangeBlink({ pad })
+                : this.renderPadOff({ pad });
+            return;
+        }
+        if (toPlay) {
+            this.renderPadGreenBlink({ pad });
+            return;
+        }
+        if (playing) {
+            isGroup
+                ? this.renderPadRedBlink({ pad })
+                : this.renderPadGreen({ pad });
+            return;
+        }
+
+        isGroup ? this.renderPadRed({ pad }) : this.renderPadOrange({ pad });
+    }
+
+    private renderLauncherPads() {
+        const { launcherPads } = this;
+        launcherPads.forEach((item) => {
+            this.renderLauncherPad(item);
+        });
+    }
+
+    private renderBottomRow() {
+        const {
+            bottomBar: { trackPlayingPads, trackGroupPads },
+        } = this;
+        const padsToRender = this.isShift() ? trackGroupPads : trackPlayingPads;
+        padsToRender.forEach((pad) => this.renderOnOffPad(pad));
+    }
+
+    private launchClip(c: number, r: number) {
+        const { bank } = this;
+        bank.getItemAt(c).clipLauncherSlotBank().getItemAt(r).launch();
+    }
+
+    private stopTrack(c) {
+        const { bank } = this;
+        bank.getItemAt(c).stop();
+    }
+
+    private toggleExpand(c: number) {
+        const { bank } = this;
+        const expanded = bank.getItemAt(c).isGroupExpanded().get();
+        bank.getItemAt(c).isGroupExpanded().set(!expanded);
     }
 }
 
 class ApcMini {
     private readonly keyboard: ApcKeyboard;
     private readonly sidebar: ApcSidebar;
+    private readonly launcher: ApcLauncher;
 
     private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
 
@@ -924,6 +1184,8 @@ class ApcMini {
             bank
         );
 
+        this.launcher = new ApcLauncher(deviceIdx, midiIn, midiOut, bank);
+
         this.activateCurrentMode();
 
         const surface = host.createHardwareSurface();
@@ -944,12 +1206,14 @@ class ApcMini {
     }
 
     private activateCurrentMode() {
-        const { mode, keyboard } = this;
+        const { mode, keyboard, launcher } = this;
         switch (mode) {
             case CONTROLLER_MODE.LAUNCHER:
+                launcher.activate();
                 keyboard.deactivate();
                 break;
             case CONTROLLER_MODE.KEYBOARD:
+                launcher.deactivate();
                 keyboard.activate();
                 break;
         }
@@ -982,18 +1246,25 @@ class ApcMini {
     }
 
     public flush() {
-        this.keyboard.flush();
-        this.sidebar.flush();
+        const { sidebar, keyboard, launcher, mode } = this;
+        mode === CONTROLLER_MODE.KEYBOARD ? keyboard.flush() : launcher.flush();
+        sidebar.flush();
     }
 
     private setShift(v: boolean) {
-        this.keyboard.setShift(v);
-        this.sidebar.setShift(v);
+        const { sidebar, keyboard, launcher, mode } = this;
+        mode === CONTROLLER_MODE.KEYBOARD
+            ? keyboard.setShift(v)
+            : launcher.setShift(v);
+        sidebar.setShift(v);
     }
 
     private handleMidiIn(midiEvent: MidiEvent) {
-        this.keyboard.handleMidiIn(midiEvent);
-        this.sidebar.handleMidiIn(midiEvent);
+        const { sidebar, keyboard, launcher, mode } = this;
+        mode === CONTROLLER_MODE.KEYBOARD
+            ? keyboard.handleMidiIn(midiEvent)
+            : launcher.handleMidiIn(midiEvent);
+        sidebar.handleMidiIn(midiEvent);
     }
 }
 
