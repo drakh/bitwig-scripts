@@ -1,33 +1,6 @@
-loadAPI(17);
+import { MidiEvent } from './types';
 
-host.setShouldFailOnDeprecatedUse(true);
-
-host.defineController(
-    'Drakh',
-    'AKAI MIDI Mix',
-    '1.0',
-    'f8f322d3-d287-49f4-a0e7-0d224eec26d2',
-    'drakh'
-);
-
-const deviceNames = ['MIDI Mix'];
-
-const midiPorts = deviceNames.length;
-
-const gridSize = 8;
-const sends = 3;
-
-host.defineMidiPorts(midiPorts, midiPorts);
-
-host.addDeviceNameBasedDiscoveryPair(deviceNames, deviceNames);
-
-interface MidiEvent {
-    status: number;
-    data1: number;
-    data2: number;
-}
-
-class MIDIMix {
+export class ControllerControl {
     private readonly deviceIdx: number;
     private readonly midiIn: API.MidiIn;
     private readonly midiOut: API.MidiOut;
@@ -198,22 +171,4 @@ class MIDIMix {
             });
         });
     }
-}
-
-const controllers: MIDIMix[] = [];
-
-function init() {
-    for (let i = 0; i < midiPorts; i++) {
-        controllers.push(new MIDIMix(i));
-    }
-}
-
-function flush() {
-    controllers.forEach((c) => {
-        c.flush();
-    });
-}
-
-function exit() {
-    println('exited');
 }
