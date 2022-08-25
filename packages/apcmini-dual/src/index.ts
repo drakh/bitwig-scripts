@@ -1,26 +1,29 @@
-import { MIDI_PORTS, DEVICE_NAMES } from './constants';
-import { ControllerControl } from './classes/ControllerControl';
+import { Constants, ControllerControl } from '@drakh-bitwig/apcmini';
 
 loadAPI(17);
 host.setShouldFailOnDeprecatedUse(true);
 
 host.defineController(
     'Drakh',
-    'AKAI APC mini',
+    'AKAI APC MINI dual',
     '0.1',
     '165cb4eb-3c8f-46e4-b283-4a93401cd0f2',
     'drakh'
 );
 
-host.defineMidiPorts(MIDI_PORTS, MIDI_PORTS);
+host.defineMidiPorts(Constants.MIDI_PORTS, Constants.MIDI_PORTS);
 
-host.addDeviceNameBasedDiscoveryPair(DEVICE_NAMES, DEVICE_NAMES);
+host.addDeviceNameBasedDiscoveryPair(
+    Constants.DEVICE_NAMES,
+    Constants.DEVICE_NAMES
+);
 
 const controllers: ControllerControl[] = [];
 
 async function init() {
+    println(String(Constants.GRID_SIZE));
     host.getNotificationSettings().getUserNotificationsEnabled().set(true);
-    for (let i = 0; i < MIDI_PORTS; i++) {
+    for (let i = 0; i < Constants.MIDI_PORTS; i++) {
         controllers.push(new ControllerControl(i));
     }
 }

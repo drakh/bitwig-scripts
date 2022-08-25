@@ -9,6 +9,8 @@
         "moduleResolution": "node",
         "checkJs": false,
         "importHelpers": true,
-        "declaration": true
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true
     }
 }
