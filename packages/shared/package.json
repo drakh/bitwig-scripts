@@ -1,5 +1,5 @@
 {
-    "name": "@drakh-bitwig/apcmini",
+    "name": "@drakh-bitwig/shared",
     "version": "1.0.0",
     "description": "",
     "main": "dist/lib.js",
@@ -11,10 +11,7 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
-        "typed-bitwig-api": "17.0.1",
-        "typescript": "4.7.4"
-    },
-    "dependencies": {
-        "@drakh-bitwig/shared": "^1.0.0"
+        "typescript": "4.7.4",
+        "typed-bitwig-api": "17.0.1"
     }
 }

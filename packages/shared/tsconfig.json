@@ -1,0 +1,13 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": "src",
+        "sourceMap": true,
+        "outDir": "dist"
+    },
+    "include": [
+        "src/**/*.ts",
+        "node_modules/typed-bitwig-api/bitwig-api.d.ts",
+        "../../node_modules/typed-bitwig-api/bitwig-api.d.ts"
+    ]
+}

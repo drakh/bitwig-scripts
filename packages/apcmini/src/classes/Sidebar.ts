@@ -1,25 +1,24 @@
-import { PadsBase } from './PadsBase';
-import { OnOffPad, MidiEvent } from '../types';
-import { CONTROLLER_MODE, BUTTON, EVENT_STATUS } from '../enums';
+import { Enums, Types } from '@drakh-bitwig/shared';
+import PadsBase from './PadsBase';
 
-export class Sidebar extends PadsBase {
+export default class Sidebar extends PadsBase {
     private readonly modePreferences: API.SettableEnumValue;
     private readonly mainScene: API.SceneBank;
     private readonly bank: API.TrackBank;
     private readonly bankScene: API.SceneBank;
 
-    private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
-    private navigationPads: OnOffPad[] = [
-        { pad: BUTTON.UP, on: false },
-        { pad: BUTTON.DOWN, on: false },
-        { pad: BUTTON.LEFT, on: false },
-        { pad: BUTTON.RIGHT, on: false },
-        { pad: BUTTON.SWITCH_TO_KEYBOARD, on: false },
-        { pad: BUTTON.SWICTH_TO_LAUNCHER, on: false },
+    private mode: Enums.CONTROLLER_MODE = Enums.CONTROLLER_MODE.KEYBOARD;
+    private navigationPads: Types.OnOffPad[] = [
+        { pad: Enums.BUTTON.UP, on: false },
+        { pad: Enums.BUTTON.DOWN, on: false },
+        { pad: Enums.BUTTON.LEFT, on: false },
+        { pad: Enums.BUTTON.RIGHT, on: false },
+        { pad: Enums.BUTTON.SWITCH_TO_KEYBOARD, on: false },
+        { pad: Enums.BUTTON.SWICTH_TO_LAUNCHER, on: false },
         { pad: 88, on: false },
-        { pad: BUTTON.STOP_ALL, on: true },
+        { pad: Enums.BUTTON.STOP_ALL, on: true },
     ];
-    private sceneStatePads: OnOffPad[] = [
+    private sceneStatePads: Types.OnOffPad[] = [
         { pad: 82, on: true },
         { pad: 83, on: true },
         { pad: 84, on: true },
@@ -34,7 +33,7 @@ export class Sidebar extends PadsBase {
         deviceIdx: number,
         midiIn: API.MidiIn,
         midiOut: API.MidiOut,
-        mode: CONTROLLER_MODE,
+        mode: Enums.CONTROLLER_MODE,
         bank: API.TrackBank,
         mainScene: API.SceneBank,
         modePreferences: API.SettableEnumValue
@@ -48,23 +47,23 @@ export class Sidebar extends PadsBase {
         this.bankScene = bankScene;
 
         bank.canScrollBackwards().addValueObserver((on) => {
-            this.setPad({ pad: BUTTON.LEFT, on });
+            this.setPad({ pad: Enums.BUTTON.LEFT, on });
         });
         bank.canScrollForwards().addValueObserver((on) => {
-            this.setPad({ pad: BUTTON.RIGHT, on });
+            this.setPad({ pad: Enums.BUTTON.RIGHT, on });
         });
 
         bankScene.canScrollBackwards().addValueObserver((on) => {
-            this.setPad({ pad: BUTTON.UP, on });
+            this.setPad({ pad: Enums.BUTTON.UP, on });
         });
         bankScene.canScrollForwards().addValueObserver((on) => {
-            this.setPad({ pad: BUTTON.DOWN, on });
+            this.setPad({ pad: Enums.BUTTON.DOWN, on });
         });
 
         this.activate();
     }
 
-    setPad(newPad: OnOffPad) {
+    setPad(newPad: Types.OnOffPad) {
         const { navigationPads } = this;
         this.navigationPads = navigationPads.map(({ pad, on }) => {
             if (pad === newPad.pad) {
@@ -80,12 +79,12 @@ export class Sidebar extends PadsBase {
         this.render();
     }
 
-    public handleMidiIn({ status, data1, data2 }: MidiEvent) {
+    public handleMidiIn({ status, data1, data2 }: Types.MidiEvent) {
         super.handleMidiIn({ status, data1, data2 }, 'sidebar');
 
         const { modePreferences, mainScene, bank, bankScene } = this;
 
-        if (status === EVENT_STATUS.NOTE_ON) {
+        if (status === Enums.EVENT_STATUS.NOTE_ON) {
             if (this.isShift()) {
                 if (data1 >= 82 && data1 < 82 + 8) {
                     const sceneIdx = data1 - 82;
@@ -94,44 +93,44 @@ export class Sidebar extends PadsBase {
                 }
                 return;
             }
-            if (data1 === BUTTON.STOP_ALL) {
+            if (data1 === Enums.BUTTON.STOP_ALL) {
                 mainScene.stop();
                 return;
             }
-            if (data1 === BUTTON.SWICTH_TO_LAUNCHER) {
-                modePreferences.set(CONTROLLER_MODE.LAUNCHER);
+            if (data1 === Enums.BUTTON.SWICTH_TO_LAUNCHER) {
+                modePreferences.set(Enums.CONTROLLER_MODE.LAUNCHER);
                 return;
             }
-            if (data1 === BUTTON.SWITCH_TO_KEYBOARD) {
-                modePreferences.set(CONTROLLER_MODE.KEYBOARD);
+            if (data1 === Enums.BUTTON.SWITCH_TO_KEYBOARD) {
+                modePreferences.set(Enums.CONTROLLER_MODE.KEYBOARD);
                 return;
             }
-            if (data1 === BUTTON.DOWN) {
+            if (data1 === Enums.BUTTON.DOWN) {
                 bankScene.scrollPageForwards();
                 mainScene.scrollPageForwards();
             }
-            if (data1 === BUTTON.UP) {
+            if (data1 === Enums.BUTTON.UP) {
                 bankScene.scrollPageBackwards();
                 mainScene.scrollPageBackwards();
             }
-            if (data1 === BUTTON.RIGHT) {
+            if (data1 === Enums.BUTTON.RIGHT) {
                 bank.scrollPageForwards();
             }
-            if (data1 === BUTTON.LEFT) {
+            if (data1 === Enums.BUTTON.LEFT) {
                 bank.scrollPageBackwards();
             }
         }
     }
 
-    public setMode(mode: CONTROLLER_MODE) {
+    public setMode(mode: Enums.CONTROLLER_MODE) {
         this.mode = mode;
         this.setPad({
-            pad: BUTTON.SWICTH_TO_LAUNCHER,
-            on: mode === CONTROLLER_MODE.KEYBOARD,
+            pad: Enums.BUTTON.SWICTH_TO_LAUNCHER,
+            on: mode === Enums.CONTROLLER_MODE.KEYBOARD,
         });
         this.setPad({
-            pad: BUTTON.SWITCH_TO_KEYBOARD,
-            on: mode === CONTROLLER_MODE.LAUNCHER,
+            pad: Enums.BUTTON.SWITCH_TO_KEYBOARD,
+            on: mode === Enums.CONTROLLER_MODE.LAUNCHER,
         });
     }
 

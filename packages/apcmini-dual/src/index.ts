@@ -1,4 +1,5 @@
-import { Constants, ControllerControl } from '@drakh-bitwig/apcmini';
+import { Constants } from '@drakh-bitwig/shared';
+import { ControllerControl } from '@drakh-bitwig/apcmini';
 
 loadAPI(17);
 host.setShouldFailOnDeprecatedUse(true);
@@ -7,7 +8,7 @@ host.defineController(
     'Drakh',
     'AKAI APC MINI dual',
     '0.1',
-    '165cb4eb-3c8f-46e4-b283-4a93401cd0f2',
+    '4b35ce8e-2f37-43ef-99bd-b2005f0f04d6',
     'drakh'
 );
 

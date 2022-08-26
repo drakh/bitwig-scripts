@@ -1,16 +1,14 @@
-import { CONTROLLER_MODE, BUTTON } from '../enums';
-import { PianoKeyboard } from './PianoKeyboard';
-import { Sidebar } from './Sidebar';
-import { ClipLauncher } from './ClipLauncher';
-import { GRID_SIZE, SENDS, DEFINED_MODES } from '../constants';
-import { MidiEvent } from '../types';
+import { Constants, Enums, Types } from '@drakh-bitwig/shared';
+import PianoKeyboard from './PianoKeyboard';
+import Sidebar from './Sidebar';
+import ClipLauncher from './ClipLauncher';
 
-export class ControllerControl {
+export default class ControllerControl {
     private readonly keyboard: PianoKeyboard;
     private readonly sidebar: Sidebar;
     private readonly launcher: ClipLauncher;
 
-    private mode: CONTROLLER_MODE = CONTROLLER_MODE.KEYBOARD;
+    private mode: Enums.CONTROLLER_MODE = Enums.CONTROLLER_MODE.KEYBOARD;
 
     constructor(deviceIdx: number) {
         const { mode } = this;
@@ -19,13 +17,17 @@ export class ControllerControl {
         const midiOut = host.getMidiOutPort(deviceIdx);
         const settings = host.getDocumentState();
         const preferences = host.getPreferences();
-        const bank = host.createTrackBank(GRID_SIZE, SENDS, GRID_SIZE);
-        const sceneBank = host.createSceneBank(GRID_SIZE);
+        const bank = host.createTrackBank(
+            Constants.GRID_SIZE,
+            Constants.SENDS,
+            Constants.GRID_SIZE
+        );
+        const sceneBank = host.createSceneBank(Constants.GRID_SIZE);
         const surface = host.createHardwareSurface();
         const modePreferences = preferences.getEnumSetting(
             `Mode - ${deviceIdx}`,
             `Global`,
-            DEFINED_MODES,
+            Constants.DEFINED_MODES,
             mode
         );
 
@@ -56,7 +58,7 @@ export class ControllerControl {
         this.registerShift(deviceIdx, midiIn, surface);
 
         modePreferences.addValueObserver((v) => {
-            this.setMode(v as CONTROLLER_MODE);
+            this.setMode(v as Enums.CONTROLLER_MODE);
         });
 
         this.activateCurrentMode();
@@ -67,7 +69,7 @@ export class ControllerControl {
         println('started');
     }
 
-    private setMode(mode: CONTROLLER_MODE) {
+    private setMode(mode: Enums.CONTROLLER_MODE) {
         this.mode = mode;
         this.activateCurrentMode();
     }
@@ -75,11 +77,11 @@ export class ControllerControl {
     private activateCurrentMode() {
         const { mode, keyboard, launcher, sidebar } = this;
         switch (mode) {
-            case CONTROLLER_MODE.LAUNCHER:
+            case Enums.CONTROLLER_MODE.LAUNCHER:
                 launcher.activate();
                 keyboard.deactivate();
                 break;
-            case CONTROLLER_MODE.KEYBOARD:
+            case Enums.CONTROLLER_MODE.KEYBOARD:
                 launcher.deactivate();
                 keyboard.activate();
                 break;
@@ -93,19 +95,19 @@ export class ControllerControl {
         surface: API.HardwareSurface
     ) {
         const shiftButton = surface.createHardwareButton(
-            `APC-BUTTON-${deviceIdx}-${BUTTON.SHIFT}`
+            `APC-BUTTON-${deviceIdx}-${Enums.BUTTON.SHIFT}`
         );
 
         shiftButton
             .pressedAction()
             .setActionMatcher(
-                midiIn.createNoteOnActionMatcher(0, BUTTON.SHIFT)
+                midiIn.createNoteOnActionMatcher(0, Enums.BUTTON.SHIFT)
             );
 
         shiftButton
             .releasedAction()
             .setActionMatcher(
-                midiIn.createNoteOffActionMatcher(0, BUTTON.SHIFT)
+                midiIn.createNoteOffActionMatcher(0, Enums.BUTTON.SHIFT)
             );
 
         shiftButton.isPressed().addValueObserver((v) => {
@@ -115,21 +117,23 @@ export class ControllerControl {
 
     public flush() {
         const { sidebar, keyboard, launcher, mode } = this;
-        mode === CONTROLLER_MODE.KEYBOARD ? keyboard.flush() : launcher.flush();
+        mode === Enums.CONTROLLER_MODE.KEYBOARD
+            ? keyboard.flush()
+            : launcher.flush();
         sidebar.flush();
     }
 
     private setShift(v: boolean) {
         const { sidebar, keyboard, launcher, mode } = this;
-        mode === CONTROLLER_MODE.KEYBOARD
+        mode === Enums.CONTROLLER_MODE.KEYBOARD
             ? keyboard.setShift(v)
             : launcher.setShift(v);
         sidebar.setShift(v);
     }
 
-    private handleMidiIn(midiEvent: MidiEvent) {
+    private handleMidiIn(midiEvent: Types.MidiEvent) {
         const { sidebar, keyboard, launcher, mode } = this;
-        mode === CONTROLLER_MODE.KEYBOARD
+        mode === Enums.CONTROLLER_MODE.KEYBOARD
             ? keyboard.handleMidiIn(midiEvent)
             : launcher.handleMidiIn(midiEvent);
         sidebar.handleMidiIn(midiEvent);

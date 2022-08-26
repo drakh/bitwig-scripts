@@ -1,37 +1,18 @@
-import { PadsBase } from './PadsBase';
-import {
-    KeyboardSettings,
-    KeyboardPad,
-    OnOffPad,
-    Octave,
-    MidiEvent,
-} from '../types';
-import { ROOT_NOTE, SCALE, EVENT_STATUS } from '../enums';
-import {
-    DEFINED_SCALES,
-    DEFINED_OCTAVES,
-    BOTTOM_ROW,
-    BOTTOM_ROW_START,
-    GRID_SIZE,
-    ROOT_SETTINGS_LAYOUT,
-    SCALE_SETTINGS_LAYOUT,
-    OCTAVE_SETTINGS_LAYOUT,
-    DEFINED_ROOTS,
-} from '../constants';
-import { createKeyboardFilter, mapPadToScale } from '../utils';
+import { Constants, Enums, Types, Utils } from '@drakh-bitwig/shared';
+import PadsBase from './PadsBase';
 
-export class PianoKeyboard extends PadsBase {
+export default class PianoKeyboard extends PadsBase {
     private readonly noteInput: API.NoteInput;
-    private readonly documentSettings: KeyboardSettings;
-    private readonly globalSettings: KeyboardSettings;
+    private readonly documentSettings: Types.KeyboardSettings;
+    private readonly globalSettings: Types.KeyboardSettings;
 
-    private keyPads: KeyboardPad[] = [];
-    private armPads: OnOffPad[] = [];
+    private keyPads: Types.KeyboardPad[] = [];
+    private armPads: Types.OnOffPad[] = [];
     private bank: API.TrackBank;
 
-    private root: ROOT_NOTE = ROOT_NOTE.C;
-    private scale: SCALE = SCALE.MAJOR;
-    private octave: Octave = DEFINED_OCTAVES[0];
+    private root: Enums.ROOT_NOTE = Enums.ROOT_NOTE.C;
+    private scale: Enums.SCALE = Enums.SCALE.MAJOR;
+    private octave: Types.Octave = Constants.DEFINED_OCTAVES[0];
 
     constructor(
         deviceIdx: number,
@@ -43,7 +24,7 @@ export class PianoKeyboard extends PadsBase {
     ) {
         super(deviceIdx, midiIn, midiOut);
         this.bank = bank;
-        this.armPads = BOTTOM_ROW.map((item) => {
+        this.armPads = Constants.BOTTOM_ROW.map((item) => {
             return {
                 ...item,
                 on: false,
@@ -52,7 +33,7 @@ export class PianoKeyboard extends PadsBase {
 
         const noteInput = midiIn.createNoteInput(
             `APC-Keyboard-${deviceIdx}`,
-            createKeyboardFilter()
+            Utils.createKeyboardFilter()
         );
         noteInput.includeInAllInputs();
         noteInput.setShouldConsumeEvents(false);
@@ -83,42 +64,42 @@ export class PianoKeyboard extends PadsBase {
         this.setTranslationTable();
     }
 
-    public handleMidiIn({ status, data1, data2 }: MidiEvent) {
+    public handleMidiIn({ status, data1, data2 }: Types.MidiEvent) {
         super.handleMidiIn({ status, data1, data2 }, 'keyboard');
         const { armPads, bank } = this;
         if (this.isActive()) {
             if (
-                status === EVENT_STATUS.NOTE_ON &&
-                data1 >= BOTTOM_ROW_START &&
-                data1 < BOTTOM_ROW_START + GRID_SIZE
+                status === Enums.EVENT_STATUS.NOTE_ON &&
+                data1 >= Constants.BOTTOM_ROW_START &&
+                data1 < Constants.BOTTOM_ROW_START + Constants.GRID_SIZE
             ) {
-                const idx = data1 - BOTTOM_ROW_START;
+                const idx = data1 - Constants.BOTTOM_ROW_START;
                 const { on } = armPads[idx];
                 const track = bank.getItemAt(idx);
                 track.arm().set(!on);
             }
             if (!this.isShift()) {
                 if (
-                    (status === EVENT_STATUS.NOTE_ON ||
-                        status === EVENT_STATUS.NOTE_OFF) &&
+                    (status === Enums.EVENT_STATUS.NOTE_ON ||
+                        status === Enums.EVENT_STATUS.NOTE_OFF) &&
                     data1 >= 0 &&
                     data1 < 64
                 ) {
                     this.renderMatchedPads(
                         data1,
-                        status === EVENT_STATUS.NOTE_ON
+                        status === Enums.EVENT_STATUS.NOTE_ON
                     );
                     return;
                 }
             }
-            if (status === EVENT_STATUS.NOTE_ON) {
-                const rootNoteButton = ROOT_SETTINGS_LAYOUT.find(
+            if (status === Enums.EVENT_STATUS.NOTE_ON) {
+                const rootNoteButton = Constants.ROOT_SETTINGS_LAYOUT.find(
                     ({ pad }) => pad === data1
                 );
-                const scaleNoteButton = SCALE_SETTINGS_LAYOUT.find(
+                const scaleNoteButton = Constants.SCALE_SETTINGS_LAYOUT.find(
                     ({ pad }) => pad === data1
                 );
-                const octaveNoteButton = OCTAVE_SETTINGS_LAYOUT.find(
+                const octaveNoteButton = Constants.OCTAVE_SETTINGS_LAYOUT.find(
                     ({ pad }) => pad === data1
                 );
                 if (rootNoteButton) {
@@ -145,7 +126,7 @@ export class PianoKeyboard extends PadsBase {
         this.renderKeyboard();
     }
 
-    private setScale(newScale: SCALE) {
+    private setScale(newScale: Enums.SCALE) {
         const { scale, globalSettings, documentSettings } = this;
         if (newScale !== scale) {
             this.scale = newScale;
@@ -161,7 +142,7 @@ export class PianoKeyboard extends PadsBase {
         }
     }
 
-    private setRoot(newRoot: ROOT_NOTE) {
+    private setRoot(newRoot: Enums.ROOT_NOTE) {
         const { root, globalSettings, documentSettings } = this;
         if (newRoot !== root) {
             this.root = newRoot;
@@ -177,7 +158,7 @@ export class PianoKeyboard extends PadsBase {
         }
     }
 
-    private setOctave(newOctave: Octave) {
+    private setOctave(newOctave: Types.Octave) {
         const { octave, globalSettings, documentSettings } = this;
         if (newOctave !== octave) {
             this.octave = newOctave;
@@ -197,21 +178,25 @@ export class PianoKeyboard extends PadsBase {
         octaveSettings,
         rootNoteSettings,
         scaleSettings,
-    }: KeyboardSettings) {
-        scaleSettings.addValueObserver((v) => this.setScale(v as SCALE));
-        rootNoteSettings.addValueObserver((v) => this.setRoot(v as ROOT_NOTE));
-        octaveSettings.addValueObserver((v) => this.setOctave(v as Octave));
+    }: Types.KeyboardSettings) {
+        scaleSettings.addValueObserver((v) => this.setScale(v as Enums.SCALE));
+        rootNoteSettings.addValueObserver((v) =>
+            this.setRoot(v as Enums.ROOT_NOTE)
+        );
+        octaveSettings.addValueObserver((v) =>
+            this.setOctave(v as Types.Octave)
+        );
     }
 
     private setSettings(
         setting: API.Preferences | API.DocumentState
-    ): KeyboardSettings {
+    ): Types.KeyboardSettings {
         const { deviceIdx, octave, scale } = this;
         const cat = `Scales - ${deviceIdx}`;
         const scaleSettings = setting.getEnumSetting(
             'Scale',
             cat,
-            DEFINED_SCALES as any,
+            Constants.DEFINED_SCALES as any,
             scale
         );
         scaleSettings.markInterested();
@@ -219,15 +204,15 @@ export class PianoKeyboard extends PadsBase {
         const rootNoteSettings = setting.getEnumSetting(
             'ROOT Note',
             cat,
-            DEFINED_ROOTS as any,
-            ROOT_NOTE.C
+            Constants.DEFINED_ROOTS as any,
+            Enums.ROOT_NOTE.C
         );
         rootNoteSettings.markInterested();
 
         const octaveSettings = setting.getEnumSetting(
             'Octave',
             cat,
-            DEFINED_OCTAVES as any,
+            Constants.DEFINED_OCTAVES as any,
             octave
         );
         octaveSettings.markInterested();
@@ -241,7 +226,7 @@ export class PianoKeyboard extends PadsBase {
 
     private setArmed(idx: number, armed: boolean) {
         const oldPad = this.armPads[idx];
-        const newPad: OnOffPad = {
+        const newPad: Types.OnOffPad = {
             ...oldPad,
             on: armed,
         };
@@ -249,7 +234,7 @@ export class PianoKeyboard extends PadsBase {
         this.renderArmPad(newPad);
     }
 
-    private renderArmPad({ pad, on }: OnOffPad) {
+    private renderArmPad({ pad, on }: Types.OnOffPad) {
         on ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
     }
 
@@ -278,7 +263,7 @@ export class PianoKeyboard extends PadsBase {
 
     private renderRootSettings() {
         if (this.isActive() && this.isShift()) {
-            ROOT_SETTINGS_LAYOUT.forEach(({ pad, root }) => {
+            Constants.ROOT_SETTINGS_LAYOUT.forEach(({ pad, root }) => {
                 root === this.root
                     ? this.renderPadRed({ pad })
                     : this.renderPadOrange({ pad });
@@ -288,7 +273,7 @@ export class PianoKeyboard extends PadsBase {
 
     private renderOctaveSettings() {
         if (this.isActive() && this.isShift()) {
-            OCTAVE_SETTINGS_LAYOUT.forEach(({ pad, octave }) => {
+            Constants.OCTAVE_SETTINGS_LAYOUT.forEach(({ pad, octave }) => {
                 octave === this.octave
                     ? this.renderPadRed({ pad })
                     : this.renderPadOrange({ pad });
@@ -298,7 +283,7 @@ export class PianoKeyboard extends PadsBase {
 
     private renderScaleSettings() {
         if (this.isActive() && this.isShift()) {
-            SCALE_SETTINGS_LAYOUT.forEach(({ pad, scale }) => {
+            Constants.SCALE_SETTINGS_LAYOUT.forEach(({ pad, scale }) => {
                 scale === this.scale
                     ? this.renderPadRed({ pad })
                     : this.renderPadOrange({ pad });
@@ -312,22 +297,22 @@ export class PianoKeyboard extends PadsBase {
         this.renderScaleSettings();
     }
 
-    private renderKeyPadOff({ isRoot, pad }: KeyboardPad) {
+    private renderKeyPadOff({ isRoot, pad }: Types.KeyboardPad) {
         isRoot ? this.renderPadRed({ pad }) : this.renderPadOrange({ pad });
     }
 
-    private renderKeyPadOn({ pad }: KeyboardPad) {
+    private renderKeyPadOn({ pad }: Types.KeyboardPad) {
         this.renderPadOn({ pad });
     }
 
     private setTranslationTable() {
         const { scale, root, octave } = this;
         const { noteInput } = this;
-        const pads: KeyboardPad[] = [];
+        const pads: Types.KeyboardPad[] = [];
         const table: number[] = [];
         for (let pad = 0; pad < 128; pad++) {
             if (pad < 64) {
-                const { note, isRoot } = mapPadToScale(
+                const { note, isRoot } = Utils.mapPadToScale(
                     pad,
                     root,
                     octave,

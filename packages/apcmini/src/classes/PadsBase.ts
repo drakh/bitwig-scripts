@@ -1,16 +1,13 @@
-import { MidiEvent } from '../types';
-import { BUTTON_COLOR, EVENT_STATUS } from '../enums';
-import { GRID_SIZE } from '../constants';
-import { Pad, OnOffPad } from '../types';
+import { Constants, Enums, Types } from '@drakh-bitwig/shared';
 
-export class PadsBase {
+export default class PadsBase {
     protected readonly deviceIdx: number;
     protected readonly midiIn: API.MidiIn;
     protected readonly midiOut: API.MidiOut;
 
     private shift: boolean = false;
     private active: boolean = false;
-    private midiEvents: MidiEvent[] = [];
+    private midiEvents: Types.MidiEvent[] = [];
 
     constructor(deviceIdx: number, midiIn: API.MidiIn, midiOut: API.MidiOut) {
         this.deviceIdx = deviceIdx;
@@ -52,55 +49,58 @@ export class PadsBase {
         this.midiEvents = [];
     }
 
-    protected renderPad(pad: number, color: BUTTON_COLOR) {
+    protected renderPad(pad: number, color: Enums.BUTTON_COLOR) {
         this.addEvent({
-            status: EVENT_STATUS.NOTE_ON,
+            status: Enums.EVENT_STATUS.NOTE_ON,
             data1: pad,
             data2: color,
         });
     }
 
-    protected renderOnOffPad({ pad, on }: OnOffPad) {
+    protected renderOnOffPad({ pad, on }: Types.OnOffPad) {
         on ? this.renderPadOn({ pad }) : this.renderPadOff({ pad });
     }
 
-    protected renderPadOff({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.OFF);
+    protected renderPadOff({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.OFF);
     }
 
-    protected renderPadOn({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.GREEN);
+    protected renderPadOn({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.GREEN);
     }
 
-    protected renderPadGreen({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.GREEN);
+    protected renderPadGreen({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.GREEN);
     }
 
-    protected renderPadGreenBlink({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.GREEN_BLINK);
+    protected renderPadGreenBlink({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.GREEN_BLINK);
     }
 
-    protected renderPadRed({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.RED);
+    protected renderPadRed({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.RED);
     }
 
-    protected renderPadRedBlink({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.RED_BLINK);
+    protected renderPadRedBlink({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.RED_BLINK);
     }
 
-    protected renderPadOrange({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.ORANGE);
+    protected renderPadOrange({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.ORANGE);
     }
 
-    protected renderPadOrangeBlink({ pad }: Pad) {
-        this.renderPad(pad, BUTTON_COLOR.ORANGE_BLINK);
+    protected renderPadOrangeBlink({ pad }: Types.Pad) {
+        this.renderPad(pad, Enums.BUTTON_COLOR.ORANGE_BLINK);
     }
 
-    protected handleMidiIn({ status, data1, data2 }: MidiEvent, text = '') {
+    protected handleMidiIn(
+        { status, data1, data2 }: Types.MidiEvent,
+        text = ''
+    ) {
         println(`${text}:${JSON.stringify({ status, data1, data2 })}`);
     }
 
-    protected addEvent(midiEvent: MidiEvent) {
+    protected addEvent(midiEvent: Types.MidiEvent) {
         const { active } = this;
         if (active) {
             this.midiEvents.push(midiEvent);
@@ -112,11 +112,11 @@ export class PadsBase {
     }
 
     protected clearBottomBar() {
-        this.clear(64, 64 + GRID_SIZE);
+        this.clear(64, 64 + Constants.GRID_SIZE);
     }
 
     protected clearSideBar() {
-        this.clear(82, 82 + GRID_SIZE);
+        this.clear(82, 82 + Constants.GRID_SIZE);
     }
 
     private clear(min: number, max: number) {

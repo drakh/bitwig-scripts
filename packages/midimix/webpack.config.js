@@ -6,7 +6,7 @@ const config = {
   entry: "./src/index.ts",
   output: {
     path: path.resolve(__dirname, "../../dist"),
-    filename:'AKAI MIDI Mix.control.js',
+    filename:'AKAI MIDI Mix/AKAI MIDI Mix.control.js',
     iife: false,
   },
   plugins: [],

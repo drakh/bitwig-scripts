@@ -6,7 +6,7 @@ const config = {
   entry: "./src/index.ts",
   output: {
     path: path.resolve(__dirname, "../../dist"),
-    filename:'AKAI APC MINI single.control.js',
+    filename:'AKAI APC MINI single/AKAI APC MINI single.control.js',
     iife: false,
   },
   plugins: [],

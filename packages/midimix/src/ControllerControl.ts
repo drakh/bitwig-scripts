@@ -1,4 +1,4 @@
-import { MidiEvent } from './types';
+import { Types } from '@drakh-bitwig/shared';
 
 export class ControllerControl {
     private readonly deviceIdx: number;
@@ -6,7 +6,7 @@ export class ControllerControl {
     private readonly midiOut: API.MidiOut;
     private readonly bank: API.TrackBank;
     private readonly surface: API.HardwareSurface;
-    private sendMidi: MidiEvent[] = [];
+    private sendMidi: Types.MidiEvent[] = [];
 
     constructor(deviceIdx: number) {
         const midiIn = host.getMidiInPort(deviceIdx);

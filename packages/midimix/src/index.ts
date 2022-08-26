@@ -8,7 +8,7 @@ host.defineController(
     'Drakh',
     'AKAI MIDI Mix',
     '1.0',
-    'f8f322d3-d287-49f4-a0e7-0d224eec26d2',
+    '983297d5-d82d-4afe-af42-fac4add01312',
     'drakh'
 );
 

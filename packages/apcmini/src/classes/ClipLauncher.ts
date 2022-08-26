@@ -1,14 +1,12 @@
-import { PadsBase } from './PadsBase';
-import { GRID_SIZE } from '../constants';
-import { EVENT_STATUS } from '../enums';
-import { LauncherPad, OnOffPad, MidiEvent } from '../types';
+import { Constants, Enums, Types } from '@drakh-bitwig/shared';
+import PadsBase from './PadsBase';
 
-export class ClipLauncher extends PadsBase {
+export default class ClipLauncher extends PadsBase {
     private readonly bank: API.TrackBank;
-    private launcherPads: LauncherPad[];
+    private launcherPads: Types.LauncherPad[];
     private bottomBar: {
-        trackPlayingPads: OnOffPad[];
-        trackGroupPads: OnOffPad[];
+        trackPlayingPads: Types.OnOffPad[];
+        trackGroupPads: Types.OnOffPad[];
     };
 
     constructor(
@@ -20,14 +18,14 @@ export class ClipLauncher extends PadsBase {
         super(deviceIdx, midiIn, midiOut);
         this.bank = bank;
 
-        const launcherPads: LauncherPad[] = [];
-        const trackPlayingPads: OnOffPad[] = [];
-        const trackGroupPads: OnOffPad[] = [];
+        const launcherPads: Types.LauncherPad[] = [];
+        const trackPlayingPads: Types.OnOffPad[] = [];
+        const trackGroupPads: Types.OnOffPad[] = [];
 
         const colSize = bank.getSizeOfBank();
 
         for (let c = 0; c < colSize; c++) {
-            const bottomPad: OnOffPad = {
+            const bottomPad: Types.OnOffPad = {
                 pad: 64 + c,
                 on: false,
             };
@@ -98,16 +96,18 @@ export class ClipLauncher extends PadsBase {
         super.flush();
     }
 
-    public handleMidiIn({ status, data1, data2 }: MidiEvent) {
+    public handleMidiIn({ status, data1, data2 }: Types.MidiEvent) {
         super.handleMidiIn({ status, data1, data2 }, 'launcher');
         const { launcherPads } = this;
-        if (status !== EVENT_STATUS.NOTE_ON) {
+        if (status !== Enums.EVENT_STATUS.NOTE_ON) {
             return;
         }
 
         const pad = launcherPads.find(({ pad }) => pad === data1);
         const col =
-            data1 >= 64 && data1 < 64 + GRID_SIZE ? data1 - 64 : undefined;
+            data1 >= 64 && data1 < 64 + Constants.GRID_SIZE
+                ? data1 - 64
+                : undefined;
 
         if (this.isShift()) {
             pad ? this.toggleExpand(pad.c) : null;
@@ -134,7 +134,7 @@ export class ClipLauncher extends PadsBase {
     }
 
     private setLauncherColState(
-        newState: Partial<Omit<LauncherPad, 'c, r, pad'>>,
+        newState: Partial<Omit<Types.LauncherPad, 'c, r, pad'>>,
         c: number
     ) {
         const { launcherPads } = this;
@@ -155,7 +155,7 @@ export class ClipLauncher extends PadsBase {
             bottomBar: { trackPlayingPads, trackGroupPads },
         } = this;
         const selected = w === 'group' ? trackGroupPads : trackPlayingPads;
-        const updated: OnOffPad[] = selected.map((item, i) => {
+        const updated: Types.OnOffPad[] = selected.map((item, i) => {
             if (i === idx) {
                 const newIten = {
                     ...item,
@@ -173,9 +173,9 @@ export class ClipLauncher extends PadsBase {
     }
 
     private updateLauncherPad(
-        pad: LauncherPad,
-        newState: Partial<Omit<LauncherPad, 'c, r, pad'>>
-    ): LauncherPad {
+        pad: Types.LauncherPad,
+        newState: Partial<Omit<Types.LauncherPad, 'c, r, pad'>>
+    ): Types.LauncherPad {
         const newPad = {
             ...pad,
             ...newState,
@@ -185,7 +185,7 @@ export class ClipLauncher extends PadsBase {
     }
 
     private setLauncherPadState(
-        newState: Partial<Omit<LauncherPad, 'c, r, pad'>>,
+        newState: Partial<Omit<Types.LauncherPad, 'c, r, pad'>>,
         c: number,
         r: number
     ) {
@@ -198,7 +198,7 @@ export class ClipLauncher extends PadsBase {
         });
     }
 
-    private renderLauncherPad(item: LauncherPad) {
+    private renderLauncherPad(item: Types.LauncherPad) {
         const { empty, playing, isGroup, toPlay, pad } = item;
 
         if (empty) {
