@@ -1,4 +1,5 @@
 import { ControllerControl } from './ControllerControl';
+import {midiPorts, deviceNames} from './constants';
 
 loadAPI(17);
 
@@ -7,8 +8,8 @@ host.setShouldFailOnDeprecatedUse(true);
 host.defineController(
     'Drakh',
     'AKAI MIDI Mix',
-    '1.0',
-    '983297d5-d82d-4afe-af42-fac4add01312',
+    '0.1',
+    '7233422f-39d7-4d05-b3a9-c36d86b44272',
     'drakh'
 );
 
@@ -33,3 +34,5 @@ function flush() {
 function exit() {
     println('exited');
 }
+
+console.info({ init, flush, exit });

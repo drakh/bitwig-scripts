@@ -4,6 +4,7 @@ export enum EVENT_STATUS {
 }
 
 export enum CONTROLLER_MODE {
+    DEVICES = 'DEVICES',
     LAUNCHER = 'LAUNCHER',
     KEYBOARD = 'KEYBOARD',
 }
@@ -14,8 +15,9 @@ export enum BUTTON {
     RIGHT = 84,
     LEFT = 85,
 
-    SWICTH_TO_LAUNCHER = 87,
-    SWITCH_TO_KEYBOARD = 88,
+    SWICTH_TO_LAUNCHER = 86,
+    SWITCH_TO_KEYBOARD = 87,
+    SWICTH_TO_DEVICES = 88,
 
     STOP_ALL = 89,
 

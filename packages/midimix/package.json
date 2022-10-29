@@ -4,20 +4,19 @@
     "description": "",
     "main": "src/index.ts",
     "scripts": {
-        "tsc:watch": "npm run tsc -- --watch",
         "tsc": "tsc --project tsconfig.json",
-        "build": "webpack --mode=production --node-env=production",
-        "dev": "npm run build -- --watch"
+        "build": "npm run tsc && rollup -c ./rollup.config.js --bundleConfigAsCjs",
+        "dev": "concurrently \"npm run tsc -- --watch\" \"rollup -c ./rollup.config.js --bundleConfigAsCjs -w\""
     },
     "author": "",
     "license": "ISC",
     "devDependencies": {
-        "prettier": "2.7.1",
-        "ts-loader": "9.3.1",
+        "@rollup/plugin-commonjs": "23.0.0",
+        "@rollup/plugin-node-resolve": "15.0.0",
+        "concurrently": "7.4.0",
+        "rollup": "3.2.2",
         "typed-bitwig-api": "17.0.1",
-        "typescript": "4.7.4",
-        "webpack": "5.74.0",
-        "webpack-cli": "4.10.0"
+        "typescript": "4.7.4"
     },
     "dependencies": {
         "@drakh-bitwig/shared": "^1.0.0"

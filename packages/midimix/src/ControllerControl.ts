@@ -1,4 +1,5 @@
 import { Types } from '@drakh-bitwig/shared';
+import { gridSize, sends } from './constants';
 
 export class ControllerControl {
     private readonly deviceIdx: number;
@@ -41,8 +42,8 @@ export class ControllerControl {
             try {
                 const col = bank.getItemAt(c);
 
-                const soloNote = 1 + c * 3;
-                const muteNote = 2 + c * 3;
+                const muteNote = 1 + c * 3;
+                const soloNote = 2 + c * 3;
                 const armNote = 3 + c * 3;
 
                 const soloButtonAction = surface

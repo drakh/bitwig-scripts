@@ -1,6 +1,7 @@
-const deviceNames = ['MIDI Mix'];
+export const deviceNames = ['MIDI Mix'];
 
-const midiPorts = deviceNames.length;
+export const midiPorts = deviceNames.length;
 
-const gridSize = 8;
-const sends = 3;
+export const gridSize = 8;
+
+export const sends = 3;

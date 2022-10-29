@@ -13,6 +13,7 @@ export default class Sidebar extends PadsBase {
         { pad: Enums.BUTTON.DOWN, on: false },
         { pad: Enums.BUTTON.LEFT, on: false },
         { pad: Enums.BUTTON.RIGHT, on: false },
+        { pad: Enums.BUTTON.SWICTH_TO_DEVICES, on: false },
         { pad: Enums.BUTTON.SWITCH_TO_KEYBOARD, on: false },
         { pad: Enums.BUTTON.SWICTH_TO_LAUNCHER, on: false },
         { pad: 88, on: false },
@@ -97,6 +98,10 @@ export default class Sidebar extends PadsBase {
                 mainScene.stop();
                 return;
             }
+            if (data1 == Enums.BUTTON.SWICTH_TO_DEVICES) {
+                modePreferences.set(Enums.CONTROLLER_MODE.DEVICES);
+                return;
+            }
             if (data1 === Enums.BUTTON.SWICTH_TO_LAUNCHER) {
                 modePreferences.set(Enums.CONTROLLER_MODE.LAUNCHER);
                 return;
@@ -125,12 +130,16 @@ export default class Sidebar extends PadsBase {
     public setMode(mode: Enums.CONTROLLER_MODE) {
         this.mode = mode;
         this.setPad({
+            pad: Enums.BUTTON.SWICTH_TO_DEVICES,
+            on: mode !== Enums.CONTROLLER_MODE.DEVICES,
+        });
+        this.setPad({
             pad: Enums.BUTTON.SWICTH_TO_LAUNCHER,
-            on: mode === Enums.CONTROLLER_MODE.KEYBOARD,
+            on: mode !== Enums.CONTROLLER_MODE.LAUNCHER,
         });
         this.setPad({
             pad: Enums.BUTTON.SWITCH_TO_KEYBOARD,
-            on: mode === Enums.CONTROLLER_MODE.LAUNCHER,
+            on: mode !== Enums.CONTROLLER_MODE.KEYBOARD,
         });
     }
 

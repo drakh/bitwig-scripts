@@ -26,6 +26,23 @@ export interface OnOffPad extends Pad {
     on: boolean;
 }
 
+export interface DevicePad extends Pad {
+    empty: boolean;
+    active: boolean;
+    layer: boolean;
+    c: number;
+    r: number;
+}
+
+export interface DeviceLayerPad extends Pad {
+    empty: boolean;
+    chain: boolean;
+    muted: boolean;
+    c: number;
+    d: number;
+    l: number;
+}
+
 export interface LauncherPad extends Pad {
     empty: boolean;
     playing: boolean;
@@ -50,4 +67,8 @@ export interface MidiEvent {
     status: number;
     data1: number;
     data2: number;
+}
+
+export interface PadCoord {
+    [pad: number]: { c: number; r: number };
 }

@@ -2,11 +2,13 @@ import { Constants, Enums, Types } from '@drakh-bitwig/shared';
 import PianoKeyboard from './PianoKeyboard';
 import Sidebar from './Sidebar';
 import ClipLauncher from './ClipLauncher';
+import DeviceSelector from './DeviceSelector';
 
 export default class ControllerControl {
     private readonly keyboard: PianoKeyboard;
     private readonly sidebar: Sidebar;
     private readonly launcher: ClipLauncher;
+    private readonly deviceSelector: DeviceSelector;
 
     private mode: Enums.CONTROLLER_MODE = Enums.CONTROLLER_MODE.KEYBOARD;
 
@@ -52,6 +54,13 @@ export default class ControllerControl {
 
         this.launcher = new ClipLauncher(deviceIdx, midiIn, midiOut, bank);
 
+        this.deviceSelector = new DeviceSelector(
+            deviceIdx,
+            midiIn,
+            midiOut,
+            bank
+        );
+
         bank.setShouldShowClipLauncherFeedback(true);
         sceneBank.setIndication(true);
 
@@ -75,13 +84,20 @@ export default class ControllerControl {
     }
 
     private activateCurrentMode() {
-        const { mode, keyboard, launcher, sidebar } = this;
+        const { mode, keyboard, launcher, sidebar, deviceSelector } = this;
         switch (mode) {
-            case Enums.CONTROLLER_MODE.LAUNCHER:
-                launcher.activate();
+            case Enums.CONTROLLER_MODE.DEVICES:
+                launcher.deactivate();
                 keyboard.deactivate();
+                deviceSelector.activate();
+                break;
+            case Enums.CONTROLLER_MODE.LAUNCHER:
+                deviceSelector.deactivate();
+                keyboard.deactivate();
+                launcher.activate();
                 break;
             case Enums.CONTROLLER_MODE.KEYBOARD:
+                deviceSelector.deactivate();
                 launcher.deactivate();
                 keyboard.activate();
                 break;
@@ -116,26 +132,50 @@ export default class ControllerControl {
     }
 
     public flush() {
-        const { sidebar, keyboard, launcher, mode } = this;
-        mode === Enums.CONTROLLER_MODE.KEYBOARD
-            ? keyboard.flush()
-            : launcher.flush();
+        const { sidebar, keyboard, launcher, deviceSelector, mode } = this;
+        switch (mode) {
+            case Enums.CONTROLLER_MODE.DEVICES:
+                deviceSelector.flush();
+                break;
+            case Enums.CONTROLLER_MODE.KEYBOARD:
+                keyboard.flush();
+                break;
+            case Enums.CONTROLLER_MODE.LAUNCHER:
+                launcher.flush();
+                break;
+        }
         sidebar.flush();
     }
 
     private setShift(v: boolean) {
-        const { sidebar, keyboard, launcher, mode } = this;
-        mode === Enums.CONTROLLER_MODE.KEYBOARD
-            ? keyboard.setShift(v)
-            : launcher.setShift(v);
+        const { sidebar, keyboard, launcher, deviceSelector, mode } = this;
+        switch (mode) {
+            case Enums.CONTROLLER_MODE.KEYBOARD:
+                keyboard.setShift(v);
+                break;
+            case Enums.CONTROLLER_MODE.LAUNCHER:
+                launcher.setShift(v);
+                break;
+            case Enums.CONTROLLER_MODE.DEVICES:
+                deviceSelector.setShift(v);
+                break;
+        }
         sidebar.setShift(v);
     }
 
     private handleMidiIn(midiEvent: Types.MidiEvent) {
-        const { sidebar, keyboard, launcher, mode } = this;
-        mode === Enums.CONTROLLER_MODE.KEYBOARD
-            ? keyboard.handleMidiIn(midiEvent)
-            : launcher.handleMidiIn(midiEvent);
+        const { sidebar, keyboard, launcher, deviceSelector, mode } = this;
+        switch (mode) {
+            case Enums.CONTROLLER_MODE.KEYBOARD:
+                keyboard.handleMidiIn(midiEvent);
+                break;
+            case Enums.CONTROLLER_MODE.LAUNCHER:
+                launcher.handleMidiIn(midiEvent);
+                break;
+            case Enums.CONTROLLER_MODE.DEVICES:
+                deviceSelector.handleMidiIn(midiEvent);
+                break;
+        }
         sidebar.handleMidiIn(midiEvent);
     }
 }

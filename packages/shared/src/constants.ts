@@ -11,12 +11,13 @@ import {
 export const GRID_SIZE = 8;
 export const SENDS = 3;
 
-export const DEVICE_NAMES = [
-    'APC MINI',
-    // 'APC MINI #2'
-];
+export const DEVICE_NAMES = ['APC MINI'];
+
+export const DEVICE_NAMES_DUAL = ['APC MINI', 'APC MINI #2'];
 
 export const MIDI_PORTS = DEVICE_NAMES.length;
+
+export const MIDI_PORTS_DUAL = DEVICE_NAMES_DUAL.length;
 
 export const BOTTOM_ROW_START = 64;
 
@@ -124,3 +125,5 @@ export const SCALES: ScaleDef = {
     [SCALE.SPANISH]: [0, 1, 4, 5, 7, 9, 10],
     [SCALE.BHAIRAV]: [0, 1, 4, 5, 7, 8, 11],
 };
+
+export const NO_NUMBER = -1;

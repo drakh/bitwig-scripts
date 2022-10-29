@@ -4,8 +4,7 @@
         //        "rootDir": "src",
         "baseUrl": "src",
         "sourceMap": true,
-        "outDir": "dist",
-        "declarationDir": "./types"
+        "outDir": "dist"
     },
     "include": [
         "src/**/*.ts",

@@ -12,6 +12,7 @@ host.defineController(
     'drakh'
 );
 
+
 host.defineMidiPorts(Constants.MIDI_PORTS, Constants.MIDI_PORTS);
 
 host.addDeviceNameBasedDiscoveryPair(
@@ -21,7 +22,7 @@ host.addDeviceNameBasedDiscoveryPair(
 
 const controllers: ControllerControl[] = [];
 
-async function init() {
+function init() {
     println(String(Constants.GRID_SIZE));
     host.getNotificationSettings().getUserNotificationsEnabled().set(true);
     for (let i = 0; i < Constants.MIDI_PORTS; i++) {
@@ -39,3 +40,5 @@ function flush() {
 function exit() {
     println('exited');
 }
+
+console.info({ init, flush, exit })
